@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Package Pricer (Local Version)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styles for better UX */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Simple animation for the loader */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader {
+            animation: spin 1s linear infinite;
+        }
+        /* Custom scrollbar for better aesthetics in item lists */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Main Application Container -->
+    <div id="app-container">
+
+        <!-- Loader displayed during initial data fetch -->
+        <div id="loader" class="flex justify-center items-center h-screen">
+            <div class="text-center">
+                <div data-lucide="loader-2" class="w-12 h-12 mx-auto text-blue-600 loader"></div>
+                <p class="mt-4 text-lg font-semibold text-gray-600">Loading Local Data...</p>
+            </div>
+        </div>
+
+        <!-- Main content, hidden until data is loaded -->
+        <main id="main-content" class="hidden">
+            <!-- Toast Notification Area -->
+            <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
+
+            <!-- Role Switcher -->
+            <div class="bg-white shadow-md p-2 flex justify-center space-x-2 sticky top-0 z-40">
+                <button id="admin-role-btn" class="px-4 py-2 rounded-full font-semibold transition-colors flex items-center space-x-2 bg-gray-200 text-gray-700">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Admin Panel</span>
+                </button>
+                <button id="calculator-role-btn" class="px-4 py-2 rounded-full font-semibold transition-colors flex items-center space-x-2 bg-green-600 text-white">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                    <span>Trip Calculator</span>
+                </button>
+            </div>
+
+            <!-- Admin Panel -->
+            <div id="admin-panel" class="p-4 md:p-8 space-y-8 hidden">
+                <div class="flex flex-wrap justify-between items-center gap-4">
+                    <h1 class="text-3xl font-bold text-gray-800">Admin Price Management</h1>
+                    <button id="save-prices-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center">
+                        <i data-lucide="save" class="w-5 h-5"></i>
+                        <span class="ml-2">Save All Prices</span>
+                    </button>
+                </div>
+                <div id="admin-services-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Service categories will be injected here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Trip Calculator Panel -->
+            <div id="calculator-panel" class="p-4 md:p-8 space-y-8">
+                 <h1 class="text-3xl font-bold text-gray-800">Trip Package Calculator</h1>
+                 <div id="calculator-items-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Calculator sections will be injected here by JavaScript -->
+                 </div>
+                 <!-- Totals Bar -->
+                 <div class="sticky bottom-0 bg-white/80 backdrop-blur-sm p-4 rounded-t-xl shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] border-t-2 border-blue-500 mt-8">
+                    <div class="max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-4">
+                        <div class="flex items-center space-x-4">
+                            <label for="usdRate" class="font-semibold text-gray-600">USD to EGP Rate:</label>
+                            <input id="usdRate" type="number" step="0.01" value="50.00" class="p-2 border rounded-md w-32 shadow-inner">
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-500">Grand Total</p>
+                            <p id="grand-total" class="text-4xl font-bold text-blue-600">0.00 EGP</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION & FAKE DATA ---
+        const LOCAL_STORAGE_KEY = 'travelPricerData';
+
+        const fakeServicesData = {
+            accommodation: [
+                { id: 'acc_1', name: 'Hilton Ramses', city: 'Cairo', cost: 2500, currency: 'EGP' },
+                { id: 'acc_2', name: 'Steigenberger Nile Palace', city: 'Luxor', cost: 150, currency: 'USD' },
+                { id: 'acc_3', name: 'Mövenpick Resort', city: 'Aswan', cost: 130, currency: 'USD' },
+            ],
+            nileCruises: [
+                { id: 'nc_1', name: 'MS Mayfair (5 Stars)', cost: 450, currency: 'USD' },
+                { id: 'nc_2', name: 'Sonesta St. George', cost: 550, currency: 'USD' },
+            ],
+            domesticFlights: [
+                { id: 'df_1', name: 'Cairo to Luxor (EgyptAir)', cost: 1800, currency: 'EGP' },
+                { id: 'df_2', name: 'Aswan to Cairo (Air Cairo)', cost: 2100, currency: 'EGP' },
+            ],
+            entranceTickets: [
+                { id: 'et_1', name: 'Giza Pyramids Area', cost: 540, currency: 'EGP' },
+                { id: 'et_2', name: 'Karnak Temple', cost: 450, currency: 'EGP' },
+                { id: 'et_3', name: 'Valley of the Kings', cost: 600, currency: 'EGP' },
+            ],
+            guides: [
+                { id: 'g_1', name: 'Ahmed (Egyptologist)', city: 'Cairo', cost: 1000, currency: 'EGP' },
+                { id: 'g_2', name: 'Fatima (Local Expert)', city: 'Luxor', cost: 800, currency: 'EGP' },
+            ],
+            transportation: [
+                { id: 't_1', name: 'Airport Transfer (Sedan)', city: 'Cairo', cost: 500, currency: 'EGP' },
+                { id: 't_2', name: 'Full Day Van', city: 'Luxor', cost: 1200, currency: 'EGP' },
+            ],
+        };
+
+        // --- 2. GLOBAL STATE & DOM REFERENCES ---
+        let servicesData = {};
+        let tripItems = {};
+        const serviceCategories = ['accommodation', 'nileCruises', 'domesticFlights', 'entranceTickets', 'guides', 'transportation'];
+
+        const loader = document.getElementById('loader');
+        const mainContent = document.getElementById('main-content');
+        const adminPanel = document.getElementById('admin-panel');
+        const calculatorPanel = document.getElementById('calculator-panel');
+        const adminBtn = document.getElementById('admin-role-btn');
+        const calculatorBtn = document.getElementById('calculator-role-btn');
+        const savePricesBtn = document.getElementById('save-prices-btn');
+        const usdRateInput = document.getElementById('usdRate');
+        
+        // --- 3. LOCALSTORAGE & UTILITY FUNCTIONS ---
+        
+        const loadServicesFromLocalStorage = () => {
+            const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (data) {
+                return JSON.parse(data);
+            } else {
+                // If no data, load fake data and save it
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fakeServicesData));
+                return fakeServicesData;
+            }
+        };
+
+        const saveServicesToLocalStorage = () => {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(servicesData));
+        };
+        
+        const showToast = (message, type = 'info') => {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            toast.className = `text-white py-3 px-6 rounded-lg shadow-xl mb-2 transform transition-all duration-300 translate-x-full ${bgColor}`;
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        // --- 4. RENDERING FUNCTIONS (Identical to previous version) ---
+        
+        const renderAdminPanel = () => {
+            const grid = document.getElementById('admin-services-grid');
+            grid.innerHTML = '';
+            serviceCategories.forEach(category => {
+                const itemsHtml = (servicesData[category] || []).map((item, index) => `
+                    <div class="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded-md">
+                        <input type="text" placeholder="Name" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="col-span-12 sm:col-span-4 p-2 border rounded-md shadow-inner admin-input">
+                        ${['accommodation', 'guides', 'transportation'].includes(category) ? `
+                        <input type="text" placeholder="City" value="${item.city || ''}" data-category="${category}" data-index="${index}" data-field="city" class="col-span-6 sm:col-span-2 p-2 border rounded-md shadow-inner admin-input">
+                        ` : '<div class="hidden sm:block sm:col-span-2"></div>'}
+                        <input type="number" placeholder="Cost" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="col-span-6 sm:col-span-2 p-2 border rounded-md shadow-inner admin-input">
+                        <select data-category="${category}" data-index="${index}" data-field="currency" class="col-span-6 sm:col-span-2 p-2 border rounded-md bg-white admin-input">
+                            <option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option>
+                            <option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option>
+                        </select>
+                        <button data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+                    </div>
+                `).join('');
+
+                grid.innerHTML += `
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2>
+                            <button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button>
+                        </div>
+                        <div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        };
+
+        const renderCalculatorPanel = () => {
+            const grid = document.getElementById('calculator-items-grid');
+            grid.innerHTML = '';
+            serviceCategories.forEach(category => {
+                const optionsHtml = (servicesData[category] || []).map(item => `<option value="${item.id}">${item.name} ${item.city ? `(${item.city})` : ''}</option>`).join('');
+                
+                const itemsHtml = (tripItems[category] || []).map((item, index) => `
+                     <div class="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded-md">
+                        <select data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-5 p-2 border rounded-md bg-white calc-select">
+                            <option value="">Select ${category.slice(0, -1)}...</option>
+                            ${optionsHtml}
+                        </select>
+                        <input type="number" min="1" value="${item.quantity}" data-category="${category}" data-index="${index}" class="col-span-4 sm:col-span-2 p-2 border rounded-md shadow-inner calc-quantity">
+                        <input type="number" value="${item.cost}" readonly class="col-span-4 sm:col-span-2 p-2 border rounded-md bg-gray-200">
+                        <input value="${item.currency}" readonly class="col-span-4 sm:col-span-2 p-2 border rounded-md bg-gray-200 text-center font-semibold">
+                        <button data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-trip-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+                    </div>
+                `).join('');
+
+                grid.innerHTML += `
+                    <div class="bg-white p-6 rounded-xl shadow-lg">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2>
+                            <button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-trip-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button>
+                        </div>
+                        <div class="space-y-3">${itemsHtml}</div>
+                    </div>
+                `;
+            });
+            
+            serviceCategories.forEach(category => {
+                (tripItems[category] || []).forEach((item, index) => {
+                    const select = document.querySelector(`select[data-category='${category}'][data-index='${index}']`);
+                    if (select) select.value = item.selectedItemId;
+                });
+            });
+
+            lucide.createIcons();
+            calculateAndDisplayTotal();
+        };
+        
+        const calculateAndDisplayTotal = () => {
+            let total = 0;
+            const rate = parseFloat(usdRateInput.value) || 1;
+            
+            serviceCategories.forEach(category => {
+                (tripItems[category] || []).forEach(item => {
+                    const itemTotal = (item.cost || 0) * (item.quantity || 1);
+                    total += item.currency === 'USD' ? itemTotal * rate : itemTotal;
+                });
+            });
+
+            document.getElementById('grand-total').textContent = total.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' });
+        };
+        
+        // --- 5. EVENT HANDLERS & LOGIC ---
+
+        const switchRole = (role) => {
+            if (role === 'admin') {
+                adminPanel.style.display = 'block';
+                calculatorPanel.style.display = 'none';
+                adminBtn.classList.replace('bg-gray-200', 'bg-blue-600');
+                adminBtn.classList.replace('text-gray-700', 'text-white');
+                calculatorBtn.classList.replace('bg-green-600', 'bg-gray-200');
+                calculatorBtn.classList.replace('text-white', 'text-gray-700');
+            } else {
+                adminPanel.style.display = 'none';
+                calculatorPanel.style.display = 'block';
+                adminBtn.classList.replace('bg-blue-600', 'bg-gray-200');
+                adminBtn.classList.replace('text-white', 'text-gray-700');
+                calculatorBtn.classList.replace('bg-gray-200', 'bg-green-600');
+                calculatorBtn.classList.replace('text-gray-700', 'text-white');
+            }
+        };
+
+        const handleSaveChanges = () => {
+            savePricesBtn.disabled = true;
+            savePricesBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 loader"></i><span class="ml-2">Saving...</span>`;
+            lucide.createIcons();
+            showToast('Saving changes to Local Storage...', 'info');
+            
+            // Simulate a short delay for better UX
+            setTimeout(() => {
+                try {
+                    // Ensure all new items get a persistent ID before saving
+                     Object.keys(servicesData).forEach(category => {
+                        servicesData[category] = servicesData[category].map(item => {
+                            if (item.id.startsWith('new_')) {
+                                item.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                            }
+                            return item;
+                        });
+                    });
+                    saveServicesToLocalStorage();
+                    showToast('Prices saved successfully!', 'success');
+                    renderAdminPanel(); // Re-render to show new IDs if any
+                } catch (error) {
+                    console.error("Error saving services: ", error);
+                    showToast('Error saving prices. Check console.', 'error');
+                } finally {
+                    savePricesBtn.disabled = false;
+                    savePricesBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Prices</span>`;
+                    lucide.createIcons();
+                }
+            }, 500); // 0.5 second delay
+        };
+
+        // --- 6. EVENT LISTENERS ---
+
+        adminBtn.addEventListener('click', () => switchRole('admin'));
+        calculatorBtn.addEventListener('click', () => switchRole('calculator'));
+        savePricesBtn.addEventListener('click', handleSaveChanges);
+        usdRateInput.addEventListener('input', calculateAndDisplayTotal);
+
+        document.body.addEventListener('click', (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            const { category, index } = target.dataset;
+
+            if (target.classList.contains('add-item-btn')) {
+                const newItem = { id: `new_${Date.now()}`, name: '', cost: 0, currency: 'EGP', city: '' };
+                if (!servicesData[category]) servicesData[category] = [];
+                servicesData[category].push(newItem);
+                renderAdminPanel();
+            }
+            if (target.classList.contains('remove-item-btn')) {
+                servicesData[category].splice(index, 1);
+                renderAdminPanel();
+            }
+            if (target.classList.contains('add-trip-item-btn')) {
+                const newItem = { selectedItemId: '', quantity: 1, cost: 0, currency: 'EGP' };
+                if (!tripItems[category]) tripItems[category] = [];
+                tripItems[category].push(newItem);
+                renderCalculatorPanel();
+            }
+            if (target.classList.contains('remove-trip-item-btn')) {
+                tripItems[category].splice(index, 1);
+                renderCalculatorPanel();
+            }
+        });
+        
+        document.body.addEventListener('input', (e) => {
+            const target = e.target;
+            const { category, index, field } = target.dataset;
+
+            if (target.classList.contains('admin-input')) {
+                let value = target.value;
+                if (target.type === 'number') value = parseFloat(value) || 0;
+                servicesData[category][index][field] = value;
+            }
+            if (target.classList.contains('calc-quantity')) {
+                tripItems[category][index].quantity = parseInt(target.value) || 1;
+                calculateAndDisplayTotal();
+            }
+        });
+
+        document.body.addEventListener('change', (e) => {
+            const target = e.target;
+            if (target.classList.contains('calc-select')) {
+                const { category, index } = target.dataset;
+                const selectedId = target.value;
+                const selectedService = servicesData[category].find(s => s.id === selectedId);
+                
+                tripItems[category][index].selectedItemId = selectedId;
+                if (selectedService) {
+                    tripItems[category][index].cost = selectedService.cost;
+                    tripItems[category][index].currency = selectedService.currency;
+                } else {
+                    tripItems[category][index].cost = 0;
+                    tripItems[category][index].currency = 'EGP';
+                }
+                renderCalculatorPanel();
+            }
+        });
+
+        // --- 7. APP STARTUP ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            servicesData = loadServicesFromLocalStorage();
+            serviceCategories.forEach(cat => tripItems[cat] = []);
+            
+            renderAdminPanel();
+            renderCalculatorPanel();
+            
+            loader.style.display = 'none';
+            mainContent.style.display = 'block';
+            switchRole('calculator');
+        });
+    </script>
+</body>
+</html>
