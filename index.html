@@ -1,173 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Package Pricer (Local Version)</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Travel Book & Go Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         /* Custom styles for better UX */
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Simple animation for the loader */
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
+
         .loader {
             animation: spin 1s linear infinite;
         }
-        /* Custom scrollbar for better aesthetics in item lists */
+
         .custom-scrollbar::-webkit-scrollbar {
             width: 8px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 10px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 10px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #555;
         }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 999;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+
+        .modal-backdrop.show,
+        .modal-content.show {
+            display: block;
+            opacity: 1;
+        }
     </style>
 </head>
+
 <body class="bg-gray-100">
 
-    <!-- Main Application Container -->
-    <div id="app-container">
-
-        <!-- Loader displayed during initial data fetch -->
-        <div id="loader" class="flex justify-center items-center h-screen">
-            <div class="text-center">
-                <div data-lucide="loader-2" class="w-12 h-12 mx-auto text-blue-600 loader"></div>
-                <p class="mt-4 text-lg font-semibold text-gray-600">Loading Local Data...</p>
-            </div>
+    <div id="loader" class="flex justify-center items-center h-screen">
+        <div class="text-center">
+            <div data-lucide="loader-2" class="w-12 h-12 mx-auto text-blue-600 loader"></div>
+            <p class="mt-4 text-lg font-semibold text-gray-600">Loading Dashboard...</p>
         </div>
+    </div>
 
-        <!-- Main content, hidden until data is loaded -->
-        <main id="main-content" class="hidden">
-            <!-- Toast Notification Area -->
-            <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
-
-            <!-- Role Switcher -->
-            <div class="bg-white shadow-md p-2 flex justify-center space-x-2 sticky top-0 z-40">
-                <button id="admin-role-btn" class="px-4 py-2 rounded-full font-semibold transition-colors flex items-center space-x-2 bg-gray-200 text-gray-700">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span>Admin Panel</span>
-                </button>
-                <button id="calculator-role-btn" class="px-4 py-2 rounded-full font-semibold transition-colors flex items-center space-x-2 bg-green-600 text-white">
-                    <i data-lucide="calculator" class="w-5 h-5"></i>
-                    <span>Trip Calculator</span>
-                </button>
-            </div>
-
-            <!-- Admin Panel -->
-            <div id="admin-panel" class="p-4 md:p-8 space-y-8 hidden">
-                <div class="flex flex-wrap justify-between items-center gap-4">
-                    <h1 class="text-3xl font-bold text-gray-800">Admin Price Management</h1>
-                    <button id="save-prices-btn" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center">
-                        <i data-lucide="save" class="w-5 h-5"></i>
-                        <span class="ml-2">Save All Prices</span>
+    <!-- Main Application Container -->
+    <div id="app-container" class="hidden h-screen flex">
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-md p-4 flex justify-between items-center z-40">
+                <div class="flex items-center">
+                    <i data-lucide="ship" class="w-8 h-8 text-blue-500"></i>
+                    <h1 class="text-2xl font-bold ml-2 text-gray-800">Book & Go</h1>
+                </div>
+                <!-- Title for medium screens and up -->
+                <h2 id="header-title" class="hidden md:block text-xl font-semibold text-gray-700">Trip Calculator</h2>
+                <div class="relative">
+                    <button id="account-btn" title="Switch Role"
+                        class="rounded-full h-10 w-10 bg-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-300 transition-colors">
+                        <i id="account-icon" data-lucide="user" class="w-6 h-6"></i>
                     </button>
                 </div>
-                <div id="admin-services-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Service categories will be injected here by JavaScript -->
-                </div>
-            </div>
+            </header>
 
-            <!-- Trip Calculator Panel -->
-            <div id="calculator-panel" class="p-4 md:p-8 space-y-8">
-                 <h1 class="text-3xl font-bold text-gray-800">Trip Package Calculator</h1>
-                 <div id="calculator-items-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Calculator sections will be injected here by JavaScript -->
-                 </div>
-                 <!-- Totals Bar -->
-                 <div class="sticky bottom-0 bg-white/80 backdrop-blur-sm p-4 rounded-t-xl shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] border-t-2 border-blue-500 mt-8">
-                    <div class="max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-4">
-                        <div class="flex items-center space-x-4">
-                            <label for="usdRate" class="font-semibold text-gray-600">USD to EGP Rate:</label>
-                            <input id="usdRate" type="number" step="0.01" value="50.00" class="p-2 border rounded-md w-32 shadow-inner">
-                        </div>
-                        <div class="text-right">
-                            <p class="text-sm font-medium text-gray-500">Grand Total</p>
-                            <p id="grand-total" class="text-4xl font-bold text-blue-600">0.00 EGP</p>
+            <!-- Scrollable Content -->
+            <main id="main-content" class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                <!-- Admin Panel -->
+                <div id="admin-panel" class="p-4 md:p-8 space-y-8 hidden">
+                    <div class="flex flex-wrap justify-between items-center gap-4">
+                        <h1 class="text-3xl font-bold text-gray-800">Admin Price Management</h1>
+                        <button id="save-prices-btn"
+                            class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center">
+                            <i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Data</span>
+                        </button>
+                    </div>
+                    <div id="admin-packages-section" class="bg-white p-6 rounded-xl shadow-lg"></div>
+                    <hr />
+                    <h2 class="text-2xl font-bold text-gray-700 pt-4">Individual Services</h2>
+                    <div id="admin-services-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+                </div>
+
+                <!-- Trip Calculator Panel -->
+                <div id="calculator-panel" class="p-4 md:p-8 space-y-8">
+                    <h1 class="text-3xl font-bold text-gray-800">Trip Package Calculator</h1>
+                    <div id="calculator-selected-package-section"></div>
+                    <div id="calculator-packages-section"></div>
+                    <hr class="my-8" />
+                    <h2 id="individual-items-header" class="text-2xl font-bold text-gray-700 pt-4">Add Extra Individual
+                        Items</h2>
+                    <div id="calculator-items-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+
+                    <!-- Grand Total Section (Moved Here) -->
+                    <div id="grand-total-section"
+                        class="bg-white p-6 rounded-xl shadow-lg mt-8 border-2 border-blue-500">
+                        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <div class="flex items-center space-x-2 sm:space-x-4">
+                                <label for="usdRate" class="font-semibold text-gray-600">USD Rate:</label>
+                                <input id="usdRate" type="number" step="0.01" value="50.00"
+                                    class="p-2 border rounded-md w-24 sm:w-32 shadow-inner">
+                            </div>
+                            <div class="text-right flex-1 w-full sm:w-auto">
+                                <p class="text-sm font-medium text-gray-500">Grand Total</p>
+                                <p id="grand-total" class="text-3xl sm:text-4xl font-bold text-blue-600">0.00 EGP</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
+
+        <!-- Modal Structure -->
+        <div id="modal-backdrop" class="modal-backdrop"></div>
+        <div id="modal-content"
+            class="modal-content bg-white rounded-lg shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-y-auto">
+        </div>
+        <div id="toast-container" class="fixed top-20 right-5 z-[1001]"></div>
     </div>
 
     <script>
         // --- 1. CONFIGURATION & FAKE DATA ---
-        const LOCAL_STORAGE_KEY = 'travelPricerData';
+        const LOCAL_STORAGE_KEY = 'travelPricerData_v4';
 
         const fakeServicesData = {
             accommodation: [
                 { id: 'acc_1', name: 'Hilton Ramses', city: 'Cairo', cost: 2500, currency: 'EGP' },
                 { id: 'acc_2', name: 'Steigenberger Nile Palace', city: 'Luxor', cost: 150, currency: 'USD' },
-                { id: 'acc_3', name: 'Mövenpick Resort', city: 'Aswan', cost: 130, currency: 'USD' },
             ],
-            nileCruises: [
-                { id: 'nc_1', name: 'MS Mayfair (5 Stars)', cost: 450, currency: 'USD' },
-                { id: 'nc_2', name: 'Sonesta St. George', cost: 550, currency: 'USD' },
-            ],
-            domesticFlights: [
-                { id: 'df_1', name: 'Cairo to Luxor (EgyptAir)', cost: 1800, currency: 'EGP' },
-                { id: 'df_2', name: 'Aswan to Cairo (Air Cairo)', cost: 2100, currency: 'EGP' },
-            ],
-            entranceTickets: [
-                { id: 'et_1', name: 'Giza Pyramids Area', cost: 540, currency: 'EGP' },
-                { id: 'et_2', name: 'Karnak Temple', cost: 450, currency: 'EGP' },
-                { id: 'et_3', name: 'Valley of the Kings', cost: 600, currency: 'EGP' },
-            ],
-            guides: [
-                { id: 'g_1', name: 'Ahmed (Egyptologist)', city: 'Cairo', cost: 1000, currency: 'EGP' },
-                { id: 'g_2', name: 'Fatima (Local Expert)', city: 'Luxor', cost: 800, currency: 'EGP' },
-            ],
-            transportation: [
-                { id: 't_1', name: 'Airport Transfer (Sedan)', city: 'Cairo', cost: 500, currency: 'EGP' },
-                { id: 't_2', name: 'Full Day Van', city: 'Luxor', cost: 1200, currency: 'EGP' },
-            ],
+            nileCruises: [{ id: 'nc_1', name: 'MS Mayfair (5 Stars)', cost: 450, currency: 'USD' }],
+            domesticFlights: [{ id: 'df_1', name: 'Cairo to Luxor (EgyptAir)', cost: 1800, currency: 'EGP' }],
+            entranceTickets: [{ id: 'et_1', name: 'Giza Pyramids Area', cost: 540, currency: 'EGP' }],
+            guides: [{ id: 'g_1', name: 'Ahmed (Egyptologist)', city: 'Cairo', cost: 1000, currency: 'EGP' }],
+            transportation: [{ id: 't_1', name: 'Airport Transfer (Sedan)', city: 'Cairo', cost: 500, currency: 'EGP' }],
+            packages: [
+                {
+                    id: 'pkg_1',
+                    title: 'Classic Cairo Week',
+                    description: 'A full week exploring the wonders of Cairo and Giza.',
+                    fixedPrice: 750,
+                    currency: 'USD',
+                    items: [
+                        { category: 'accommodation', itemId: 'acc_1', quantity: 7 },
+                        { category: 'guides', itemId: 'g_1', quantity: 5 },
+                        { category: 'entranceTickets', itemId: 'et_1', quantity: 1 },
+                        { category: 'transportation', itemId: 't_1', quantity: 2 },
+                    ]
+                }
+            ]
         };
 
         // --- 2. GLOBAL STATE & DOM REFERENCES ---
         let servicesData = {};
         let tripItems = {};
+        let selectedPackages = [];
+        let currentUserRole = 'calculator';
         const serviceCategories = ['accommodation', 'nileCruises', 'domesticFlights', 'entranceTickets', 'guides', 'transportation'];
 
-        const loader = document.getElementById('loader');
-        const mainContent = document.getElementById('main-content');
-        const adminPanel = document.getElementById('admin-panel');
-        const calculatorPanel = document.getElementById('calculator-panel');
-        const adminBtn = document.getElementById('admin-role-btn');
-        const calculatorBtn = document.getElementById('calculator-role-btn');
-        const savePricesBtn = document.getElementById('save-prices-btn');
-        const usdRateInput = document.getElementById('usdRate');
-        
-        // --- 3. LOCALSTORAGE & UTILITY FUNCTIONS ---
-        
+        const updateChannel = new BroadcastChannel('travel_pricer_updates');
+
+        let loader, appContainer, adminPanel, calculatorPanel, savePricesBtn, usdRateInput,
+            modalBackdrop, modalContent, headerTitle, accountBtn;
+
+        // --- 3. UTILITY & LOCALSTORAGE ---
+
         const loadServicesFromLocalStorage = () => {
             const data = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (data) {
-                return JSON.parse(data);
+                const parsedData = JSON.parse(data);
+                if (!parsedData.packages) parsedData.packages = [];
+                return parsedData;
             } else {
-                // If no data, load fake data and save it
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fakeServicesData));
                 return fakeServicesData;
             }
         };
-
-        const saveServicesToLocalStorage = () => {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(servicesData));
-        };
-        
+        const saveServicesToLocalStorage = () => localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(servicesData));
         const showToast = (message, type = 'info') => {
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -175,236 +221,262 @@
             toast.className = `text-white py-3 px-6 rounded-lg shadow-xl mb-2 transform transition-all duration-300 translate-x-full ${bgColor}`;
             toast.textContent = message;
             toastContainer.appendChild(toast);
-            
             setTimeout(() => toast.classList.remove('translate-x-full'), 10);
-            setTimeout(() => {
-                toast.classList.add('translate-x-full');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
+            setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
+        };
+        const getServiceById = (category, id) => (servicesData[category] || []).find(s => s.id === id);
+
+        // --- 4. MODAL & UI FUNCTIONS ---
+        const openModal = () => { modalBackdrop.classList.add('show'); modalContent.classList.add('show'); };
+        const closeModal = () => { modalBackdrop.classList.remove('show'); modalContent.classList.remove('show'); modalContent.innerHTML = ''; };
+
+        const updateDashboardUI = () => {
+            if (currentUserRole === 'admin') {
+                adminPanel.style.display = 'block';
+                calculatorPanel.style.display = 'none';
+                headerTitle.textContent = 'Admin Dashboard';
+                accountBtn.innerHTML = `<i id="account-icon" data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>`;
+            } else {
+                adminPanel.style.display = 'none';
+                calculatorPanel.style.display = 'block';
+                headerTitle.textContent = 'Trip Calculator';
+                accountBtn.innerHTML = `<i id="account-icon" data-lucide="user" class="w-6 h-6"></i>`;
+            }
+            lucide.createIcons();
         };
 
-        // --- 4. RENDERING FUNCTIONS (Identical to previous version) ---
-        
+        // --- 5. CORE RENDERING ---
+
         const renderAdminPanel = () => {
+            renderAdminPackagesSection();
             const grid = document.getElementById('admin-services-grid');
             grid.innerHTML = '';
             serviceCategories.forEach(category => {
-                const itemsHtml = (servicesData[category] || []).map((item, index) => `
-                    <div class="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded-md">
-                        <input type="text" placeholder="Name" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="col-span-12 sm:col-span-4 p-2 border rounded-md shadow-inner admin-input">
-                        ${['accommodation', 'guides', 'transportation'].includes(category) ? `
-                        <input type="text" placeholder="City" value="${item.city || ''}" data-category="${category}" data-index="${index}" data-field="city" class="col-span-6 sm:col-span-2 p-2 border rounded-md shadow-inner admin-input">
-                        ` : '<div class="hidden sm:block sm:col-span-2"></div>'}
-                        <input type="number" placeholder="Cost" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="col-span-6 sm:col-span-2 p-2 border rounded-md shadow-inner admin-input">
-                        <select data-category="${category}" data-index="${index}" data-field="currency" class="col-span-6 sm:col-span-2 p-2 border rounded-md bg-white admin-input">
-                            <option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option>
-                            <option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option>
-                        </select>
-                        <button data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>
-                `).join('');
-
-                grid.innerHTML += `
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2>
-                            <button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button>
-                        </div>
-                        <div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div>
-                    </div>
-                `;
+                const itemsHtml = (servicesData[category] || []).map((item, index) => `<div class="flex flex-col sm:flex-row gap-2 items-center p-2 bg-gray-50 rounded-md"><input type="text" placeholder="Name" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="flex-1 w-full p-2 border rounded-md shadow-inner admin-input">${['accommodation', 'guides', 'transportation'].includes(category) ? `<input type="text" placeholder="City" value="${item.city || ''}" data-category="${category}" data-index="${index}" data-field="city" class="w-full sm:w-1/4 p-2 border rounded-md shadow-inner admin-input">` : ''}<input type="number" placeholder="Cost" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="w-full sm:w-24 p-2 border rounded-md shadow-inner admin-input"><select data-category="${category}" data-index="${index}" data-field="currency" class="w-full sm:w-24 p-2 border rounded-md bg-white admin-input"><option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option><option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option></select><button data-category="${category}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
+                grid.innerHTML += `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2><button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div></div>`;
             });
             lucide.createIcons();
         };
 
         const renderCalculatorPanel = () => {
+            renderCalculatorSelectedPackage();
+            renderCalculatorPackagesSection();
             const grid = document.getElementById('calculator-items-grid');
             grid.innerHTML = '';
             serviceCategories.forEach(category => {
                 const optionsHtml = (servicesData[category] || []).map(item => `<option value="${item.id}">${item.name} ${item.city ? `(${item.city})` : ''}</option>`).join('');
-                
-                const itemsHtml = (tripItems[category] || []).map((item, index) => `
-                     <div class="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded-md">
-                        <select data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-5 p-2 border rounded-md bg-white calc-select">
-                            <option value="">Select ${category.slice(0, -1)}...</option>
-                            ${optionsHtml}
-                        </select>
-                        <input type="number" min="1" value="${item.quantity}" data-category="${category}" data-index="${index}" class="col-span-4 sm:col-span-2 p-2 border rounded-md shadow-inner calc-quantity">
-                        <input type="number" value="${item.cost}" readonly class="col-span-4 sm:col-span-2 p-2 border rounded-md bg-gray-200">
-                        <input value="${item.currency}" readonly class="col-span-4 sm:col-span-2 p-2 border rounded-md bg-gray-200 text-center font-semibold">
-                        <button data-category="${category}" data-index="${index}" class="col-span-12 sm:col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-trip-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>
-                `).join('');
-
-                grid.innerHTML += `
-                    <div class="bg-white p-6 rounded-xl shadow-lg">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2>
-                            <button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-trip-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button>
-                        </div>
-                        <div class="space-y-3">${itemsHtml}</div>
-                    </div>
-                `;
+                const itemsHtml = (tripItems[category] || []).map((item, index) => `<div class="flex flex-col sm:flex-row gap-2 items-center p-2 bg-gray-50 rounded-md"><select data-category="${category}" data-index="${index}" class="w-full flex-1 p-2 border rounded-md bg-white calc-select"><option value="">Select ${category.slice(0, -1)}...</option>${optionsHtml}</select><input type="number" min="1" value="${item.quantity}" data-category="${category}" data-index="${index}" class="w-full sm:w-20 p-2 border rounded-md shadow-inner calc-quantity"><input type="number" value="${item.cost}" readonly class="w-full sm:w-24 p-2 border rounded-md bg-gray-200"><input value="${item.currency}" readonly class="w-full sm:w-20 p-2 border rounded-md bg-gray-200 text-center font-semibold"><button data-category="${category}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-trip-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
+                grid.innerHTML += `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2><button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-trip-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3">${itemsHtml}</div></div>`;
             });
-            
-            serviceCategories.forEach(category => {
-                (tripItems[category] || []).forEach((item, index) => {
-                    const select = document.querySelector(`select[data-category='${category}'][data-index='${index}']`);
-                    if (select) select.value = item.selectedItemId;
-                });
-            });
-
+            serviceCategories.forEach(category => { (tripItems[category] || []).forEach((item, index) => { const select = document.querySelector(`select[data-category='${category}'][data-index='${index}']`); if (select) select.value = item.selectedItemId; }); });
             lucide.createIcons();
             calculateAndDisplayTotal();
         };
-        
+
         const calculateAndDisplayTotal = () => {
             let total = 0;
             const rate = parseFloat(usdRateInput.value) || 1;
-            
-            serviceCategories.forEach(category => {
-                (tripItems[category] || []).forEach(item => {
-                    const itemTotal = (item.cost || 0) * (item.quantity || 1);
-                    total += item.currency === 'USD' ? itemTotal * rate : itemTotal;
-                });
-            });
-
+            selectedPackages.forEach(p => total += p.totalCostEGP);
+            serviceCategories.forEach(category => { (tripItems[category] || []).forEach(item => { const itemTotal = (item.cost || 0) * (item.quantity || 1); total += item.currency === 'USD' ? itemTotal * rate : itemTotal; }); });
             document.getElementById('grand-total').textContent = total.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' });
         };
-        
-        // --- 5. EVENT HANDLERS & LOGIC ---
 
-        const switchRole = (role) => {
-            if (role === 'admin') {
-                adminPanel.style.display = 'block';
-                calculatorPanel.style.display = 'none';
-                adminBtn.classList.replace('bg-gray-200', 'bg-blue-600');
-                adminBtn.classList.replace('text-gray-700', 'text-white');
-                calculatorBtn.classList.replace('bg-green-600', 'bg-gray-200');
-                calculatorBtn.classList.replace('text-white', 'text-gray-700');
-            } else {
-                adminPanel.style.display = 'none';
-                calculatorPanel.style.display = 'block';
-                adminBtn.classList.replace('bg-blue-600', 'bg-gray-200');
-                adminBtn.classList.replace('text-white', 'text-gray-700');
-                calculatorBtn.classList.replace('bg-gray-200', 'bg-green-600');
-                calculatorBtn.classList.replace('text-gray-700', 'text-white');
-            }
+        // --- 6. PACKAGE SPECIFIC RENDERING ---
+
+        const renderAdminPackagesSection = () => {
+            const container = document.getElementById('admin-packages-section');
+            const packagesHtml = (servicesData.packages || []).map((pkg, index) => `<div class="flex justify-between items-center p-3 bg-gray-100 rounded-lg"><p class="font-semibold">${pkg.title}</p><div class="flex space-x-2"><button data-pkg-index="${index}" class="edit-package-btn text-blue-600 hover:text-blue-800"><i data-lucide="edit" class="w-5 h-5 pointer-events-none"></i></button><button data-pkg-index="${index}" class="delete-package-btn text-red-600 hover:text-red-800"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div></div>`).join('');
+            container.innerHTML = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-700">Package Management</h2><button id="create-new-package-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 flex items-center"><i data-lucide="plus" class="w-5 h-5"></i><span class="ml-2">Create New Package</span></button></div><div class="space-y-2">${packagesHtml}</div>`;
+            lucide.createIcons();
         };
+
+        const renderCalculatorPackagesSection = () => {
+            const container = document.getElementById('calculator-packages-section');
+            const header = document.getElementById('individual-items-header');
+            if (!servicesData.packages || servicesData.packages.length === 0) { container.innerHTML = ''; return; }
+            const rate = parseFloat(usdRateInput.value) || 1;
+            const packagesHtml = servicesData.packages.map((pkg, index) => {
+                let perPersonCost = 0;
+                if (pkg.fixedPrice > 0) perPersonCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
+                else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); perPersonCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
+                const descriptionSnippet = pkg.description.length > 100 ? pkg.description.substring(0, 100) + '...' : pkg.description;
+                return `<div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"><div class="p-6 flex-1"><h3 class="text-xl font-bold text-gray-800">${pkg.title}</h3><p class="text-gray-600 mt-2">${descriptionSnippet}</p></div><div class="bg-gray-50 p-4"><div class="flex justify-between items-center mb-3"><div><p class="text-sm text-gray-500">Starting from (per person)</p><p class="text-2xl font-bold text-green-600">${perPersonCost.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div><button data-pkg-index="${index}" class="preview-package-btn text-sm font-semibold text-blue-600 hover:underline">Preview</button></div><div class="flex items-center space-x-2"><label for="person-count-${index}" class="text-sm font-semibold">Persons:</label><input type="number" id="person-count-${index}" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner"><button data-pkg-index="${index}" class="select-package-btn flex-1 font-semibold bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add to Trip</button></div></div></div>`;
+            }).join('');
+            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-700 mb-4">Available Packages</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6">${packagesHtml}</div>`;
+        };
+
+        const renderCalculatorSelectedPackage = () => {
+            const container = document.getElementById('calculator-selected-package-section');
+            if (selectedPackages.length === 0) { container.innerHTML = ''; return; }
+            const packagesHtml = selectedPackages.map((p, index) => {
+                const { pkg, numPeople, totalCostEGP } = p;
+                return `<div class="bg-blue-50 border-2 border-blue-200 p-6 rounded-xl shadow-lg mb-4"><div class="flex justify-between items-center mb-2"><h2 class="text-2xl font-bold text-blue-800">Selected Package</h2><button data-selected-pkg-index="${index}" class="remove-selected-package-btn text-red-600 hover:text-red-800 font-semibold flex items-center space-x-1"><i data-lucide="x-circle" class="w-5 h-5 pointer-events-none"></i><span>Remove</span></button></div><div class="flex justify-between items-end"><div><p class="text-xl font-semibold">${pkg.title}</p><p class="text-gray-600">${numPeople} x Person(s)</p></div><div><p class="text-sm text-gray-500">Package Subtotal</p><p class="text-2xl font-bold text-blue-700">${totalCostEGP.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div></div></div>`;
+            }).join('');
+            container.innerHTML = packagesHtml;
+            lucide.createIcons();
+        };
+
+        // --- 7. EVENT HANDLERS & LOGIC ---
 
         const handleSaveChanges = () => {
             savePricesBtn.disabled = true;
             savePricesBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 loader"></i><span class="ml-2">Saving...</span>`;
             lucide.createIcons();
-            showToast('Saving changes to Local Storage...', 'info');
-            
-            // Simulate a short delay for better UX
+            showToast('Saving data to Local Storage...', 'info');
             setTimeout(() => {
                 try {
-                    // Ensure all new items get a persistent ID before saving
-                     Object.keys(servicesData).forEach(category => {
-                        servicesData[category] = servicesData[category].map(item => {
-                            if (item.id.startsWith('new_')) {
-                                item.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                            }
-                            return item;
-                        });
-                    });
+                    Object.keys(servicesData).forEach(category => { if (category !== 'packages') { servicesData[category] = servicesData[category].map(item => { if (item.id.startsWith('new_')) item.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; return item; }); } });
                     saveServicesToLocalStorage();
-                    showToast('Prices saved successfully!', 'success');
-                    renderAdminPanel(); // Re-render to show new IDs if any
-                } catch (error) {
-                    console.error("Error saving services: ", error);
-                    showToast('Error saving prices. Check console.', 'error');
-                } finally {
-                    savePricesBtn.disabled = false;
-                    savePricesBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Prices</span>`;
-                    lucide.createIcons();
-                }
-            }, 500); // 0.5 second delay
+                    updateChannel.postMessage('data_updated');
+                    showToast('All data saved successfully!', 'success');
+                    renderAdminPanel();
+                } catch (error) { console.error("Error saving data: ", error); showToast('Error saving data. Check console.', 'error'); }
+                finally { savePricesBtn.disabled = false; savePricesBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Data</span>`; lucide.createIcons(); }
+            }, 500);
         };
 
-        // --- 6. EVENT LISTENERS ---
+        // --- 8. PACKAGE EVENT HANDLERS ---
 
-        adminBtn.addEventListener('click', () => switchRole('admin'));
-        calculatorBtn.addEventListener('click', () => switchRole('calculator'));
-        savePricesBtn.addEventListener('click', handleSaveChanges);
-        usdRateInput.addEventListener('input', calculateAndDisplayTotal);
+        const openAdminPackageModal = (pkgIndex = null) => {
+            const isEditing = pkgIndex !== null && servicesData.packages[pkgIndex] !== undefined;
+            const pkg = isEditing ? servicesData.packages[pkgIndex] : null;
+            const renderPackageItems = (items) => items.map((item, itemIndex) => { const optionsHtml = (servicesData[item.category] || []).map(s => `<option value="${s.id}" ${s.id === item.itemId ? 'selected' : ''}>${s.name} ${s.city ? `(${s.city})` : ''}</option>`).join(''); return `<div class="grid grid-cols-12 gap-2 items-center package-item-row"><select data-item-index="${itemIndex}" class="col-span-4 p-2 border rounded-md bg-white package-item-category">${serviceCategories.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('')}</select><select data-item-index="${itemIndex}" class="col-span-5 p-2 border rounded-md bg-white package-item-id"><option value="">Select Item...</option>${optionsHtml}</select><input type="number" min="1" value="${item.quantity}" data-item-index="${itemIndex}" class="col-span-2 p-2 border rounded-md shadow-inner package-item-quantity"><button data-item-index="${itemIndex}" class="col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-package-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`; }).join('');
+            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${isEditing ? 'Edit' : 'Create'} Package</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="space-y-4"><div><label class="font-semibold text-gray-700">Package Title</label><input id="package-title-input" type="text" value="${pkg?.title || ''}" class="w-full mt-1 p-2 border rounded-md shadow-inner"></div><div><label class="font-semibold text-gray-700">Package Description</label><textarea id="package-desc-input" rows="3" class="w-full mt-1 p-2 border rounded-md shadow-inner">${pkg?.description || ''}</textarea></div><div class="grid grid-cols-2 gap-4"><label class="font-semibold text-gray-700 col-span-2">Package Price (Per Person)</label><div><label class="text-sm">Fixed Price (optional)</label><input id="package-price-input" type="number" value="${pkg?.fixedPrice || ''}" placeholder="Overrides item sum" class="w-full mt-1 p-2 border rounded-md shadow-inner"></div><div><label class="text-sm">Currency</label><select id="package-currency-select" class="w-full mt-1 p-2 border rounded-md bg-white"><option value="EGP" ${pkg?.currency === 'EGP' ? 'selected' : ''}>EGP</option><option value="USD" ${pkg?.currency === 'USD' ? 'selected' : ''}>USD</option></select></div></div><div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Package Items (for reference)</h3><button id="add-package-item-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Item</button></div><div id="package-items-container" class="space-y-2 p-2 bg-gray-50 rounded-md">${renderPackageItems(pkg?.items || [])}</div></div></div><div class="mt-6 flex justify-end"><button id="save-package-btn" data-pkg-index="${isEditing ? pkgIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700">Save Package</button></div></div>`;
+            lucide.createIcons(); openModal();
+        };
 
-        document.body.addEventListener('click', (e) => {
-            const target = e.target.closest('button');
-            if (!target) return;
-            const { category, index } = target.dataset;
+        const openPreviewPackageModal = (pkgIndex) => {
+            const pkg = servicesData.packages[pkgIndex]; if (!pkg) return;
+            const rate = parseFloat(usdRateInput.value) || 1;
+            let totalCost = 0;
+            if (pkg.fixedPrice > 0) totalCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
+            else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); totalCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
+            const itemsHtml = pkg.items.map(item => { const service = getServiceById(item.category, item.itemId); if (!service) return ''; return `<li class="flex justify-between items-center py-2 border-b"><div><p class="font-semibold">${service.name} ${service.city ? `(${service.city})` : ''}</p><p class="text-sm text-gray-500">${item.quantity} x ${service.cost.toLocaleString()} ${service.currency}</p></div></li>`; }).join('');
+            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${pkg.title}</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><p class="text-gray-600 mb-4">${pkg.description}</p><h3 class="font-bold text-lg mb-2">What's Included:</h3><ul class="mb-4">${itemsHtml}</ul><div class="text-right bg-gray-100 p-4 rounded-lg"><p class="text-sm font-medium text-gray-500">Total Price Per Person</p><p class="text-3xl font-bold text-blue-600">${totalCost.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div></div>`;
+            lucide.createIcons(); openModal();
+        };
 
-            if (target.classList.contains('add-item-btn')) {
-                const newItem = { id: `new_${Date.now()}`, name: '', cost: 0, currency: 'EGP', city: '' };
-                if (!servicesData[category]) servicesData[category] = [];
-                servicesData[category].push(newItem);
-                renderAdminPanel();
-            }
-            if (target.classList.contains('remove-item-btn')) {
-                servicesData[category].splice(index, 1);
-                renderAdminPanel();
-            }
-            if (target.classList.contains('add-trip-item-btn')) {
-                const newItem = { selectedItemId: '', quantity: 1, cost: 0, currency: 'EGP' };
-                if (!tripItems[category]) tripItems[category] = [];
-                tripItems[category].push(newItem);
-                renderCalculatorPanel();
-            }
-            if (target.classList.contains('remove-trip-item-btn')) {
-                tripItems[category].splice(index, 1);
-                renderCalculatorPanel();
-            }
-        });
-        
-        document.body.addEventListener('input', (e) => {
-            const target = e.target;
-            const { category, index, field } = target.dataset;
+        // --- 9. EVENT LISTENERS ---
 
-            if (target.classList.contains('admin-input')) {
-                let value = target.value;
-                if (target.type === 'number') value = parseFloat(value) || 0;
-                servicesData[category][index][field] = value;
-            }
-            if (target.classList.contains('calc-quantity')) {
-                tripItems[category][index].quantity = parseInt(target.value) || 1;
-                calculateAndDisplayTotal();
-            }
-        });
-
-        document.body.addEventListener('change', (e) => {
-            const target = e.target;
-            if (target.classList.contains('calc-select')) {
-                const { category, index } = target.dataset;
-                const selectedId = target.value;
-                const selectedService = servicesData[category].find(s => s.id === selectedId);
-                
-                tripItems[category][index].selectedItemId = selectedId;
-                if (selectedService) {
-                    tripItems[category][index].cost = selectedService.cost;
-                    tripItems[category][index].currency = selectedService.currency;
-                } else {
-                    tripItems[category][index].cost = 0;
-                    tripItems[category][index].currency = 'EGP';
-                }
-                renderCalculatorPanel();
-            }
-        });
-
-        // --- 7. APP STARTUP ---
-        
         document.addEventListener('DOMContentLoaded', () => {
+            loader = document.getElementById('loader');
+            appContainer = document.getElementById('app-container');
+            adminPanel = document.getElementById('admin-panel');
+            calculatorPanel = document.getElementById('calculator-panel');
+            savePricesBtn = document.getElementById('save-prices-btn');
+            usdRateInput = document.getElementById('usdRate');
+            modalBackdrop = document.getElementById('modal-backdrop');
+            modalContent = document.getElementById('modal-content');
+            headerTitle = document.getElementById('header-title');
+            accountBtn = document.getElementById('account-btn');
+
+            accountBtn.addEventListener('click', () => { currentUserRole = currentUserRole === 'admin' ? 'calculator' : 'admin'; updateDashboardUI(); });
+            savePricesBtn.addEventListener('click', handleSaveChanges);
+            usdRateInput.addEventListener('input', () => { renderCalculatorPackagesSection(); calculateAndDisplayTotal(); });
+            modalBackdrop.addEventListener('click', closeModal);
+
+            document.body.addEventListener('click', (e) => {
+                const target = e.target.closest('button'); if (!target) return;
+                const { category, index, pkgIndex, selectedPkgIndex } = target.dataset;
+
+                // Admin Panel
+                if (target.classList.contains('add-item-btn')) { const newItem = { id: `new_${Date.now()}`, name: '', cost: 0, currency: 'EGP', city: '' }; if (!servicesData[category]) servicesData[category] = []; servicesData[category].push(newItem); renderAdminPanel(); }
+                if (target.classList.contains('remove-item-btn')) { servicesData[category].splice(index, 1); renderAdminPanel(); }
+                if (target.id === 'create-new-package-btn') openAdminPackageModal();
+                if (target.classList.contains('edit-package-btn')) openAdminPackageModal(pkgIndex);
+                if (target.classList.contains('delete-package-btn')) { if (confirm('Are you sure you want to delete this package?')) { servicesData.packages.splice(pkgIndex, 1); renderAdminPackagesSection(); showToast('Package deleted.', 'info'); } }
+
+                // Calculator Panel
+                if (target.classList.contains('add-trip-item-btn')) { const newItem = { selectedItemId: '', quantity: 1, cost: 0, currency: 'EGP' }; if (!tripItems[category]) tripItems[category] = []; tripItems[category].push(newItem); renderCalculatorPanel(); }
+                if (target.classList.contains('remove-trip-item-btn')) { tripItems[category].splice(index, 1); renderCalculatorPanel(); }
+                if (target.classList.contains('preview-package-btn')) openPreviewPackageModal(pkgIndex);
+                if (target.classList.contains('select-package-btn')) {
+                    const numPeopleInput = document.getElementById(`person-count-${pkgIndex}`);
+                    const numPeople = parseInt(numPeopleInput.value);
+                    if (numPeople && numPeople > 0) {
+                        const pkg = servicesData.packages[pkgIndex];
+                        const rate = parseFloat(usdRateInput.value) || 1;
+                        let perPersonCost = 0;
+                        if (pkg.fixedPrice > 0) perPersonCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
+                        else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); perPersonCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
+                        selectedPackages.push({ pkg, numPeople, totalCostEGP: perPersonCost * numPeople });
+                        renderCalculatorPanel();
+                        showToast(`${pkg.title} added for ${numPeople} people.`, 'success');
+                    } else { showToast('Please enter a valid number of people.', 'error'); }
+                }
+                if (target.classList.contains('remove-selected-package-btn')) { selectedPackages.splice(selectedPkgIndex, 1); renderCalculatorPanel(); }
+
+                // Modal Clicks
+                if (target.id === 'close-modal-btn') closeModal();
+                if (target.id === 'add-package-item-btn') { const container = document.getElementById('package-items-container'); const newItemRow = document.createElement('div'); const newIndex = container.children.length; newItemRow.className = 'grid grid-cols-12 gap-2 items-center package-item-row'; newItemRow.innerHTML = `<select data-item-index="${newIndex}" class="col-span-4 p-2 border rounded-md bg-white package-item-category">${serviceCategories.map(c => `<option value="${c}">${c}</option>`).join('')}</select><select data-item-index="${newIndex}" class="col-span-5 p-2 border rounded-md bg-white package-item-id"><option value="">Select Item...</option></select><input type="number" min="1" value="1" data-item-index="${newIndex}" class="col-span-2 p-2 border rounded-md shadow-inner package-item-quantity"><button data-item-index="${newIndex}" class="col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-package-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>`; container.appendChild(newItemRow); lucide.createIcons(); }
+                if (target.classList.contains('remove-package-item-btn')) { target.closest('.package-item-row').remove(); }
+                if (target.id === 'save-package-btn') {
+                    const { pkgIndex } = target.dataset;
+                    const isEditing = pkgIndex && pkgIndex !== '' && servicesData.packages[pkgIndex];
+                    const title = document.getElementById('package-title-input').value;
+                    const description = document.getElementById('package-desc-input').value;
+                    const fixedPrice = parseFloat(document.getElementById('package-price-input').value) || 0;
+                    const currency = document.getElementById('package-currency-select').value;
+                    const items = [];
+                    document.querySelectorAll('.package-item-row').forEach(row => { items.push({ category: row.querySelector('.package-item-category').value, itemId: row.querySelector('.package-item-id').value, quantity: parseInt(row.querySelector('.package-item-quantity').value) || 1 }); });
+                    if (!title) { showToast('Package title is required.', 'error'); return; }
+                    const newPackage = { id: isEditing ? servicesData.packages[pkgIndex].id : `pkg_${Date.now()}`, title, description, fixedPrice, currency, items };
+                    if (isEditing) { servicesData.packages[pkgIndex] = newPackage; } else { if (!servicesData.packages) servicesData.packages = []; servicesData.packages.push(newPackage); }
+                    saveServicesToLocalStorage();
+                    updateChannel.postMessage('data_updated');
+                    renderAdminPackagesSection(); closeModal(); showToast(`Package ${isEditing ? 'updated' : 'created'}!`, 'success');
+                }
+            });
+
+            document.body.addEventListener('input', (e) => {
+                const target = e.target;
+                const { category, index, field } = target.dataset;
+                if (target.classList.contains('admin-input')) { let value = target.value; if (target.type === 'number') value = parseFloat(value) || 0; servicesData[category][index][field] = value; }
+                if (target.classList.contains('calc-quantity')) { tripItems[category][index].quantity = parseInt(target.value) || 1; calculateAndDisplayTotal(); }
+            });
+
+            document.body.addEventListener('change', (e) => {
+                const target = e.target;
+                if (target.classList.contains('calc-select')) {
+                    const { category, index } = target.dataset;
+                    const selectedId = target.value;
+                    const selectedService = getServiceById(category, selectedId);
+                    tripItems[category][index].selectedItemId = selectedId;
+                    if (selectedService) { tripItems[category][index].cost = selectedService.cost; tripItems[category][index].currency = selectedService.currency; } else { tripItems[category][index].cost = 0; tripItems[category][index].currency = 'EGP'; }
+                    renderCalculatorPanel();
+                }
+                if (target.classList.contains('package-item-category')) {
+                    const itemIndex = target.dataset.itemIndex;
+                    const newCategory = target.value;
+                    const idSelect = document.querySelector(`.package-item-id[data-item-index='${itemIndex}']`);
+                    const optionsHtml = (servicesData[newCategory] || []).map(s => `<option value="${s.id}">${s.name} ${s.city ? `(${s.city})` : ''}</option>`).join('');
+                    idSelect.innerHTML = `<option value="">Select Item...</option>${optionsHtml}`;
+                }
+            });
+
+            // --- 10. APP STARTUP & REAL-TIME LISTENER ---
+
+            updateChannel.onmessage = (event) => {
+                if (event.data === 'data_updated') {
+                    showToast('Data has been updated in another tab!', 'info');
+                    servicesData = loadServicesFromLocalStorage();
+                    tripItems = {};
+                    serviceCategories.forEach(cat => tripItems[cat] = []);
+                    selectedPackages = [];
+                    renderAdminPanel();
+                    renderCalculatorPanel();
+                }
+            };
+
             servicesData = loadServicesFromLocalStorage();
             serviceCategories.forEach(cat => tripItems[cat] = []);
-            
             renderAdminPanel();
             renderCalculatorPanel();
-            
+            updateDashboardUI();
             loader.style.display = 'none';
-            mainContent.style.display = 'block';
-            switchRole('calculator');
+            appContainer.classList.remove('hidden');
         });
     </script>
 </body>
+
 </html>
