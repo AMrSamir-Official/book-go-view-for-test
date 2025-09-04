@@ -4,11 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Book & Go Dashboard</title>
+    <title>Book & Go - Travel Program Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* Custom styles for better UX */
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -41,7 +40,6 @@
             background: #555;
         }
 
-        /* Modal Styles */
         .modal-backdrop {
             position: fixed;
             top: 0;
@@ -71,6 +69,23 @@
             display: block;
             opacity: 1;
         }
+
+        /* Animation Styles */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
     </style>
 </head>
 
@@ -83,18 +98,14 @@
         </div>
     </div>
 
-    <!-- Main Application Container -->
     <div id="app-container" class="hidden h-screen flex">
-        <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Header -->
             <header class="bg-white shadow-md p-4 flex justify-between items-center z-40">
                 <div class="flex items-center">
                     <i data-lucide="ship" class="w-8 h-8 text-blue-500"></i>
                     <h1 class="text-2xl font-bold ml-2 text-gray-800">Book & Go</h1>
                 </div>
-                <!-- Title for medium screens and up -->
-                <h2 id="header-title" class="hidden md:block text-xl font-semibold text-gray-700">Trip Calculator</h2>
+                <h2 id="header-title" class="hidden md:block text-xl font-semibold text-gray-700">Program Builder</h2>
                 <div class="relative">
                     <button id="account-btn" title="Switch Role"
                         class="rounded-full h-10 w-10 bg-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-300 transition-colors">
@@ -103,130 +114,91 @@
                 </div>
             </header>
 
-            <!-- Scrollable Content -->
             <main id="main-content" class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
                 <!-- Admin Panel -->
                 <div id="admin-panel" class="p-4 md:p-8 space-y-8 hidden">
                     <div class="flex flex-wrap justify-between items-center gap-4">
-                        <h1 class="text-3xl font-bold text-gray-800">Admin Price Management</h1>
-                        <button id="save-prices-btn"
-                            class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center">
-                            <i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Data</span>
+                        <h1 class="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+                        <button id="save-data-btn"
+                            class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors flex items-center">
+                            <i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Changes</span>
                         </button>
                     </div>
-                    <div id="admin-packages-section" class="bg-white p-6 rounded-xl shadow-lg"></div>
+                    <div id="admin-programs-section"></div>
                     <hr />
-                    <h2 class="text-2xl font-bold text-gray-700 pt-4">Individual Services</h2>
-                    <div id="admin-services-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
+                    <div id="admin-services-section"></div>
                 </div>
 
                 <!-- Trip Calculator Panel -->
                 <div id="calculator-panel" class="p-4 md:p-8 space-y-8">
-                    <h1 class="text-3xl font-bold text-gray-800">Trip Package Calculator</h1>
-                    <div id="calculator-selected-package-section"></div>
-                    <div id="calculator-packages-section"></div>
+                    <div id="current-trip-section"></div>
+                    <div id="program-selection-section"></div>
                     <hr class="my-8" />
-                    <h2 id="individual-items-header" class="text-2xl font-bold text-gray-700 pt-4">Add Extra Individual
-                        Items</h2>
-                    <div id="calculator-items-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8"></div>
-
-                    <!-- Grand Total Section (Moved Here) -->
-                    <div id="grand-total-section"
-                        class="bg-white p-6 rounded-xl shadow-lg mt-8 border-2 border-blue-500">
-                        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <div class="flex items-center space-x-2 sm:space-x-4">
-                                <label for="usdRate" class="font-semibold text-gray-600">USD Rate:</label>
-                                <input id="usdRate" type="number" step="0.01" value="50.00"
-                                    class="p-2 border rounded-md w-24 sm:w-32 shadow-inner">
-                            </div>
-                            <div class="text-right flex-1 w-full sm:w-auto">
-                                <p class="text-sm font-medium text-gray-500">Grand Total</p>
-                                <p id="grand-total" class="text-3xl sm:text-4xl font-bold text-blue-600">0.00 EGP</p>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="individual-items-section"></div>
+                    <div id="grand-total-section" class="pt-8"></div>
                 </div>
             </main>
         </div>
-
-        <!-- Modal Structure -->
+        <div id="toast-container" class="fixed top-20 right-5 z-[1001]"></div>
         <div id="modal-backdrop" class="modal-backdrop"></div>
         <div id="modal-content"
-            class="modal-content bg-white rounded-lg shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-y-auto">
+            class="modal-content bg-white rounded-lg shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-y-auto custom-scrollbar">
         </div>
-        <div id="toast-container" class="fixed top-20 right-5 z-[1001]"></div>
     </div>
 
     <script>
-        // --- 1. CONFIGURATION & FAKE DATA ---
-        const LOCAL_STORAGE_KEY = 'travelPricerData_v4';
-
-        const fakeServicesData = {
-            accommodation: [
-                { id: 'acc_1', name: 'Hilton Ramses', city: 'Cairo', cost: 2500, currency: 'EGP' },
-                { id: 'acc_2', name: 'Steigenberger Nile Palace', city: 'Luxor', cost: 150, currency: 'USD' },
-            ],
-            nileCruises: [{ id: 'nc_1', name: 'MS Mayfair (5 Stars)', cost: 450, currency: 'USD' }],
-            domesticFlights: [{ id: 'df_1', name: 'Cairo to Luxor (EgyptAir)', cost: 1800, currency: 'EGP' }],
-            entranceTickets: [{ id: 'et_1', name: 'Giza Pyramids Area', cost: 540, currency: 'EGP' }],
-            guides: [{ id: 'g_1', name: 'Ahmed (Egyptologist)', city: 'Cairo', cost: 1000, currency: 'EGP' }],
-            transportation: [{ id: 't_1', name: 'Airport Transfer (Sedan)', city: 'Cairo', cost: 500, currency: 'EGP' }],
-            packages: [
-                {
-                    id: 'pkg_1',
-                    title: 'Classic Cairo Week',
-                    description: 'A full week exploring the wonders of Cairo and Giza.',
-                    fixedPrice: 750,
-                    currency: 'USD',
-                    items: [
-                        { category: 'accommodation', itemId: 'acc_1', quantity: 7 },
-                        { category: 'guides', itemId: 'g_1', quantity: 5 },
-                        { category: 'entranceTickets', itemId: 'et_1', quantity: 1 },
-                        { category: 'transportation', itemId: 't_1', quantity: 2 },
-                    ]
-                }
-            ]
-        };
-
-        // --- 2. GLOBAL STATE & DOM REFERENCES ---
-        let servicesData = {};
-        let tripItems = {};
-        let selectedPackages = [];
+        const LOCAL_STORAGE_KEY = 'bookAndGo_v10_final';
+        const updateChannel = new BroadcastChannel('book_and_go_updates');
+        let appData = {};
+        let currentTrip = { packages: [], individualItems: {} };
         let currentUserRole = 'calculator';
         const serviceCategories = ['accommodation', 'nileCruises', 'domesticFlights', 'entranceTickets', 'guides', 'transportation'];
 
-        const updateChannel = new BroadcastChannel('travel_pricer_updates');
-
-        let loader, appContainer, adminPanel, calculatorPanel, savePricesBtn, usdRateInput,
-            modalBackdrop, modalContent, headerTitle, accountBtn;
-
-        // --- 3. UTILITY & LOCALSTORAGE ---
-
-        const loadServicesFromLocalStorage = () => {
-            const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (data) {
-                const parsedData = JSON.parse(data);
-                if (!parsedData.packages) parsedData.packages = [];
-                return parsedData;
-            } else {
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fakeServicesData));
-                return fakeServicesData;
-            }
+        const defaultData = {
+            services: {
+                accommodation: [
+                    { id: 'acc_1', name: 'Hilton Ramses (5*)', city: 'Cairo', cost: 150, currency: 'USD' },
+                    { id: 'acc_2', name: 'Sonesta St. George (5*)', city: 'Luxor', cost: 180, currency: 'USD' },
+                    { id: 'acc_3', name: 'Jaz Makadi Oasis (5*)', city: 'Hurghada', cost: 120, currency: 'USD' },
+                ],
+                nileCruises: [{ id: 'nc_1', name: 'MS Mayfair (5*)', cost: 200, currency: 'USD' }],
+                guides: [{ id: 'g_1', name: 'Expert Egyptologist', city: 'Cairo', cost: 80, currency: 'USD' }],
+                transportation: [{ id: 't_1', name: 'Private A/C Van', city: 'General', cost: 50, currency: 'USD' }],
+                entranceTickets: [], domesticFlights: [],
+            },
+            programs: [
+                { id: 'prog_1', title: 'Cairo & Nile Cruise', duration_days: 7, duration_nights: 6, breakdown: [{ city: 'Cairo', nights: 3 }, { city: 'Nile Cruise', nights: 3 }], itinerary: [{ day: 1, title: 'Arrival Cairo', description: 'Meet & assist at Cairo International Airport, transfer to hotel & overnight in Cairo.' }], includes: ['Meet and greet', 'All transfers', 'Bottled water during trips'], excludes: ['International airfare', 'Optional tours'], slots: [{ id: 'slot_cai_hotel', label: 'Cairo Hotel', category: 'accommodation', filter: { city: 'Cairo' }, nights: 3 }, { id: 'slot_nc', label: 'Nile Cruise', category: 'nileCruises', filter: {}, nights: 3 }], fixedServices: [{ category: 'guides', serviceId: 'g_1', quantity: 5 }] },
+                { id: 'prog_2', title: 'Cairo & Hurghada', duration_days: 6, duration_nights: 5, breakdown: [{ city: 'Cairo', nights: 2 }, { city: 'Hurghada', nights: 3 }], itinerary: [{ day: 1, title: 'Arrival Cairo', description: '...' }], includes: ['All transfers'], excludes: ['Optional tours'], slots: [{ id: 'slot_cai_hotel_2', label: 'Cairo Hotel', category: 'accommodation', filter: { city: 'Cairo' }, nights: 2 }, { id: 'slot_hrg_hotel', label: 'Hurghada Hotel', category: 'accommodation', filter: { city: 'Hurghada' }, nights: 3 }], fixedServices: [] }
+            ]
         };
-        const saveServicesToLocalStorage = () => localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(servicesData));
+
+        let loader, appContainer, adminPanel, calculatorPanel, headerTitle, accountBtn, modalBackdrop, modalContent;
+
+        const loadData = () => {
+            const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (data) return JSON.parse(data);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultData));
+            return defaultData;
+        };
+
+        const saveData = () => {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(appData));
+            updateChannel.postMessage('data_updated');
+            showToast('All changes saved successfully!', 'success');
+        };
+
         const showToast = (message, type = 'info') => {
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
             toast.className = `text-white py-3 px-6 rounded-lg shadow-xl mb-2 transform transition-all duration-300 translate-x-full ${bgColor}`;
             toast.textContent = message;
             toastContainer.appendChild(toast);
             setTimeout(() => toast.classList.remove('translate-x-full'), 10);
             setTimeout(() => { toast.classList.add('translate-x-full'); setTimeout(() => toast.remove(), 300); }, 4000);
         };
-        const getServiceById = (category, id) => (servicesData[category] || []).find(s => s.id === id);
 
-        // --- 4. MODAL & UI FUNCTIONS ---
+        const getServiceById = (category, id) => (appData.services[category] || []).find(s => s.id === id);
         const openModal = () => { modalBackdrop.classList.add('show'); modalContent.classList.add('show'); };
         const closeModal = () => { modalBackdrop.classList.remove('show'); modalContent.classList.remove('show'); modalContent.innerHTML = ''; };
 
@@ -235,247 +207,414 @@
                 adminPanel.style.display = 'block';
                 calculatorPanel.style.display = 'none';
                 headerTitle.textContent = 'Admin Dashboard';
-                accountBtn.innerHTML = `<i id="account-icon" data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>`;
+                accountBtn.innerHTML = `<i data-lucide="shield-check" class="w-6 h-6 text-blue-600"></i>`;
+                renderAdminPanel();
             } else {
                 adminPanel.style.display = 'none';
                 calculatorPanel.style.display = 'block';
-                headerTitle.textContent = 'Trip Calculator';
-                accountBtn.innerHTML = `<i id="account-icon" data-lucide="user" class="w-6 h-6"></i>`;
+                headerTitle.textContent = 'Program Builder';
+                accountBtn.innerHTML = `<i data-lucide="user" class="w-6 h-6"></i>`;
+                renderCalculatorPanel();
             }
             lucide.createIcons();
         };
 
-        // --- 5. CORE RENDERING ---
+        const renderAdminServices = () => {
+            const container = document.getElementById('admin-services-section');
+            let servicesHtml = '';
+            serviceCategories.forEach(category => {
+                const itemsHtml = (appData.services[category] || []).map((item, index) => `
+                <div class="p-4 bg-gray-50 rounded-lg border">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-end">
+                        <div class="lg:col-span-4"><label class="text-sm font-medium text-gray-600">Service Name</label><input type="text" placeholder="Name" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="mt-1 w-full p-2 border rounded-md shadow-inner admin-service-input"></div>
+                        ${['accommodation', 'guides', 'transportation'].includes(category) ? `<div class="lg:col-span-3"><label class="text-sm font-medium text-gray-600">City</label><input type="text" placeholder="City" value="${item.city || ''}" data-category="${category}" data-index="${index}" data-field="city" class="mt-1 w-full p-2 border rounded-md shadow-inner admin-service-input"></div>` : '<div class="hidden lg:block lg:col-span-3"></div>'}
+                        <div class="lg:col-span-2"><label class="text-sm font-medium text-gray-600">Cost</label><input type="number" placeholder="Cost" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="mt-1 w-full p-2 border rounded-md shadow-inner admin-service-input"></div>
+                        <div class="lg:col-span-2"><label class="text-sm font-medium text-gray-600">Currency</label><select data-category="${category}" data-index="${index}" data-field="currency" class="mt-1 w-full p-2 border rounded-md bg-white admin-service-input"><option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option><option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option></select></div>
+                        <div class="lg:col-span-1 flex justify-end"><button data-category="${category}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-service-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>
+                    </div>
+                </div>`).join('');
+                servicesHtml += `<div class="bg-white p-6 rounded-xl shadow-lg mb-6"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h3><button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-service-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div></div>`;
+            });
+            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-800">Service Prices</h2>${servicesHtml}`;
+        };
+
+        const renderAdminPrograms = () => {
+            const container = document.getElementById('admin-programs-section');
+            const programsHtml = (appData.programs || []).map((prog, index) => `<div class="flex justify-between items-center p-3 bg-gray-100 rounded-lg"><p class="font-semibold">${prog.title}</p><div class="flex space-x-2"><button data-prog-index="${index}" class="edit-program-btn text-blue-600 hover:text-blue-800"><i data-lucide="edit" class="w-5 h-5 pointer-events-none"></i></button><button data-prog-index="${index}" class="delete-program-btn text-red-600 hover:text-red-800"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div></div>`).join('');
+            container.innerHTML = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">Program Templates</h2><button id="create-new-program-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 flex items-center"><i data-lucide="plus" class="w-5 h-5"></i><span class="ml-2">Create Program</span></button></div><div class="space-y-2">${programsHtml}</div>`;
+        };
 
         const renderAdminPanel = () => {
-            renderAdminPackagesSection();
-            const grid = document.getElementById('admin-services-grid');
-            grid.innerHTML = '';
-            serviceCategories.forEach(category => {
-                const itemsHtml = (servicesData[category] || []).map((item, index) => `<div class="flex flex-col sm:flex-row gap-2 items-center p-2 bg-gray-50 rounded-md"><input type="text" placeholder="Name" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="flex-1 w-full p-2 border rounded-md shadow-inner admin-input">${['accommodation', 'guides', 'transportation'].includes(category) ? `<input type="text" placeholder="City" value="${item.city || ''}" data-category="${category}" data-index="${index}" data-field="city" class="w-full sm:w-1/4 p-2 border rounded-md shadow-inner admin-input">` : ''}<input type="number" placeholder="Cost" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="w-full sm:w-24 p-2 border rounded-md shadow-inner admin-input"><select data-category="${category}" data-index="${index}" data-field="currency" class="w-full sm:w-24 p-2 border rounded-md bg-white admin-input"><option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option><option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option></select><button data-category="${category}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
-                grid.innerHTML += `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2><button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div></div>`;
-            });
-            lucide.createIcons();
+            renderAdminPrograms(); renderAdminServices(); lucide.createIcons();
         };
 
         const renderCalculatorPanel = () => {
-            renderCalculatorSelectedPackage();
-            renderCalculatorPackagesSection();
-            const grid = document.getElementById('calculator-items-grid');
-            grid.innerHTML = '';
-            serviceCategories.forEach(category => {
-                const optionsHtml = (servicesData[category] || []).map(item => `<option value="${item.id}">${item.name} ${item.city ? `(${item.city})` : ''}</option>`).join('');
-                const itemsHtml = (tripItems[category] || []).map((item, index) => `<div class="flex flex-col sm:flex-row gap-2 items-center p-2 bg-gray-50 rounded-md"><select data-category="${category}" data-index="${index}" class="w-full flex-1 p-2 border rounded-md bg-white calc-select"><option value="">Select ${category.slice(0, -1)}...</option>${optionsHtml}</select><input type="number" min="1" value="${item.quantity}" data-category="${category}" data-index="${index}" class="w-full sm:w-20 p-2 border rounded-md shadow-inner calc-quantity"><input type="number" value="${item.cost}" readonly class="w-full sm:w-24 p-2 border rounded-md bg-gray-200"><input value="${item.currency}" readonly class="w-full sm:w-20 p-2 border rounded-md bg-gray-200 text-center font-semibold"><button data-category="${category}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-trip-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
-                grid.innerHTML += `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h2><button data-category="${category}" class="text-blue-500 hover:text-blue-700 add-trip-item-btn"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3">${itemsHtml}</div></div>`;
+            renderCurrentTrip();
+            renderProgramSelection();
+            renderIndividualItemsSelection();
+            renderGrandTotal();
+            lucide.createIcons();
+        };
+
+        const renderCurrentTrip = () => {
+            const container = document.getElementById('current-trip-section');
+            if (currentTrip.packages.length === 0 && Object.values(currentTrip.individualItems).every(arr => arr.length === 0)) {
+                container.innerHTML = ''; return;
+            }
+            let html = '<h2 class="text-2xl font-bold text-gray-800 mb-4">Your Current Trip</h2>';
+
+            currentTrip.packages.forEach((pkgItem, index) => {
+                const program = appData.programs.find(p => p.id === pkgItem.programId);
+                const slotsHtml = (program.slots || []).map(slot => {
+                    const filteredServices = (appData.services[slot.category] || []).filter(service => !slot.filter.city || service.city === slot.filter.city);
+                    const optionsHtml = filteredServices.map(s => `<option value="${s.id}" ${pkgItem.slots[slot.id] === s.id ? 'selected' : ''}>${s.name} - ${s.cost} ${s.currency}</option>`).join('');
+                    return `<div class="mb-2"><label class="text-sm font-semibold text-gray-600">${slot.label}</label><select data-pkg-index="${index}" data-slot-id="${slot.id}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-slot-select">${optionsHtml}</select></div>`;
+                }).join('');
+
+                const fixedServicesHtml = (program.fixedServices || []).map(fixed => {
+                    const service = getServiceById(fixed.category, fixed.serviceId);
+                    return service ? `<li class="text-sm text-gray-600">${service.name} (x${fixed.quantity})</li>` : '';
+                }).join('');
+
+                const { pricePerPersonEGP, subtotalEGP } = calculatePackagePrice(pkgItem);
+
+                html += `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4 animate-fadeInUp">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-bold text-blue-800">${program.title}</h3>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+                                <div class="flex items-center"><label class="text-sm mr-2">Guests:</label><input type="number" value="${pkgItem.pax}" min="1" data-pkg-index="${index}" class="p-1 border rounded-md w-16 text-sm trip-pax-input"></div>
+                                <div class="flex items-center"><label class="text-sm mr-2">Start Date:</label><input type="date" value="${pkgItem.startDate || ''}" data-pkg-index="${index}" class="p-1 border rounded-md text-sm trip-start-date-input"></div>
+                                <button data-pkg-index="${index}" class="view-itinerary-btn text-sm font-semibold text-blue-600 hover:underline">View Itinerary with Dates</button>
+                            </div>
+                        </div>
+                        <button data-pkg-index="${index}" class="remove-package-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
+                    </div>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><h4 class="font-semibold mb-2">Your Choices:</h4>${slotsHtml}</div>
+                        <div><h4 class="font-semibold mb-2">Included Services:</h4><ul class="list-disc list-inside space-y-1">${fixedServicesHtml}</ul></div>
+                    </div>
+                    <div class="mt-4 pt-2 border-t text-right">
+                        <p class="text-sm text-gray-600">Price per Person: <span class="font-medium">${pricePerPersonEGP.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</span></p>
+                        <p class="font-bold text-lg text-blue-700">Package Subtotal: ${subtotalEGP.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p>
+                    </div>
+                </div>`;
             });
-            serviceCategories.forEach(category => { (tripItems[category] || []).forEach((item, index) => { const select = document.querySelector(`select[data-category='${category}'][data-index='${index}']`); if (select) select.value = item.selectedItemId; }); });
-            lucide.createIcons();
-            calculateAndDisplayTotal();
+
+            Object.entries(currentTrip.individualItems).forEach(([category, items]) => {
+                if (items.length > 0) {
+                    items.forEach((item, index) => {
+                        const service = getServiceById(category, item.serviceId);
+                        if (service) {
+                            html += `<div class="bg-gray-50 border-l-4 border-gray-500 p-3 rounded-lg mb-2 flex justify-between items-center text-sm animate-fadeInUp"><p>${service.name} (x${item.quantity})</p><button data-category="${category}" data-index="${index}" class="remove-individual-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`;
+                        }
+                    });
+                }
+            });
+            container.innerHTML = html;
         };
 
-        const calculateAndDisplayTotal = () => {
+        const renderProgramSelection = () => {
+            const container = document.getElementById('program-selection-section');
+            const programsHtml = (appData.programs || []).map((prog, index) => {
+                const breakdownText = (prog.breakdown || []).map(b => `${b.city} ${b.nights}N`).join(' & ');
+                const basePrice = calculateProgramBasePrice(prog);
+                return `<div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1">
+                    <div class="p-6 flex-1">
+                        <h3 class="text-xl font-bold text-gray-800">${prog.title}</h3>
+                        <p class="text-gray-500 text-sm font-semibold mt-1">${prog.duration_days} Days / ${prog.duration_nights} Nights</p>
+                        <p class="text-gray-600 mt-2 text-sm">${breakdownText}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <div>
+                                <p class="text-sm text-gray-500">Starts From</p>
+                                <p class="text-2xl font-bold text-green-600">${basePrice.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p>
+                            </div>
+                            <button data-prog-index="${index}" class="details-program-btn text-sm font-semibold text-blue-600 hover:underline">Details</button>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-sm font-semibold">Guests:</label>
+                            <input type="number" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner program-pax-input">
+                            <button data-prog-id="${prog.id}" class="add-program-to-trip-btn flex-1 font-semibold bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Add</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-800 mb-6">Select a Program</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${programsHtml}</div>`;
+        };
+
+        const renderIndividualItemsSelection = () => {
+            const container = document.getElementById('individual-items-section');
+            let servicesHtml = '';
+            serviceCategories.forEach(category => {
+                const optionsHtml = (appData.services[category] || []).map(item => `<option value="${item.id}">${item.name} - ${item.cost} ${item.currency}</option>`).join('');
+                servicesHtml += `<div class="bg-white p-4 rounded-xl shadow-lg"><h3 class="text-lg font-semibold capitalize text-gray-700 mb-2">${category.replace(/([A-Z])/g, ' $1')}</h3><div class="flex items-center space-x-2"><select class="flex-1 w-full p-2 border rounded-md bg-white individual-service-select"><option value="">Select an item...</option>${optionsHtml}</select><input type="number" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner individual-quantity-input"><button data-category="${category}" class="add-individual-to-trip-btn bg-green-500 text-white p-2 rounded-lg hover:bg-green-600 transition-colors"><i data-lucide="plus" class="w-5 h-5 pointer-events-none"></i></button></div></div>`;
+            });
+            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-800 mb-6">Add Individual Services</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4">${servicesHtml}</div>`;
+        };
+
+        const calculatePackagePrice = (pkgItem) => {
+            const program = appData.programs.find(p => p.id === pkgItem.programId);
+            if (!program) return { pricePerPersonEGP: 0, subtotalEGP: 0 };
+
+            const rate = 50; // Example rate
+            let pricePerPersonEGP = 0;
+
+            (program.slots || []).forEach(slot => {
+                const service = getServiceById(slot.category, pkgItem.slots[slot.id]);
+                if (service) {
+                    const priceInEGP = service.currency === 'USD' ? service.cost * rate : service.cost;
+                    pricePerPersonEGP += priceInEGP * (slot.nights || 1);
+                }
+            });
+            (program.fixedServices || []).forEach(fixed => {
+                const service = getServiceById(fixed.category, fixed.serviceId);
+                if (service) {
+                    const priceInEGP = service.currency === 'USD' ? service.cost * rate : service.cost;
+                    pricePerPersonEGP += priceInEGP * (fixed.quantity || 1);
+                }
+            });
+
+            const subtotalEGP = pricePerPersonEGP * pkgItem.pax;
+            return { pricePerPersonEGP, subtotalEGP };
+        };
+
+        const renderGrandTotal = () => {
+            const container = document.getElementById('grand-total-section');
+            const rate = 50; // Example rate
             let total = 0;
-            const rate = parseFloat(usdRateInput.value) || 1;
-            selectedPackages.forEach(p => total += p.totalCostEGP);
-            serviceCategories.forEach(category => { (tripItems[category] || []).forEach(item => { const itemTotal = (item.cost || 0) * (item.quantity || 1); total += item.currency === 'USD' ? itemTotal * rate : itemTotal; }); });
-            document.getElementById('grand-total').textContent = total.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' });
+
+            currentTrip.packages.forEach(pkgItem => {
+                total += calculatePackagePrice(pkgItem).subtotalEGP;
+            });
+
+            Object.entries(currentTrip.individualItems).forEach(([category, items]) => {
+                items.forEach(item => {
+                    const service = getServiceById(category, item.serviceId);
+                    if (service) {
+                        const priceInEGP = service.currency === 'USD' ? service.cost * rate : service.cost;
+                        total += priceInEGP * item.quantity;
+                    }
+                });
+            });
+
+            container.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="text-right"><p class="text-xl font-medium text-gray-600">Grand Total</p><p id="trip-total" class="text-5xl font-bold text-blue-600">${total.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div></div>`;
         };
 
-        // --- 6. PACKAGE SPECIFIC RENDERING ---
-
-        const renderAdminPackagesSection = () => {
-            const container = document.getElementById('admin-packages-section');
-            const packagesHtml = (servicesData.packages || []).map((pkg, index) => `<div class="flex justify-between items-center p-3 bg-gray-100 rounded-lg"><p class="font-semibold">${pkg.title}</p><div class="flex space-x-2"><button data-pkg-index="${index}" class="edit-package-btn text-blue-600 hover:text-blue-800"><i data-lucide="edit" class="w-5 h-5 pointer-events-none"></i></button><button data-pkg-index="${index}" class="delete-package-btn text-red-600 hover:text-red-800"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div></div>`).join('');
-            container.innerHTML = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-700">Package Management</h2><button id="create-new-package-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 flex items-center"><i data-lucide="plus" class="w-5 h-5"></i><span class="ml-2">Create New Package</span></button></div><div class="space-y-2">${packagesHtml}</div>`;
-            lucide.createIcons();
+        const calculateProgramBasePrice = (program) => {
+            let total = 0; const rate = 50;
+            (program.slots || []).forEach(slot => {
+                const filteredServices = (appData.services[slot.category] || []).filter(s => !slot.filter.city || s.city === slot.filter.city);
+                if (filteredServices.length > 0) {
+                    const service = filteredServices.sort((a, b) => a.cost - b.cost)[0]; // pick cheapest
+                    const priceInEGP = service.currency === 'USD' ? service.cost * rate : service.cost;
+                    total += priceInEGP * (slot.nights || 1);
+                }
+            });
+            (program.fixedServices || []).forEach(fixed => {
+                const service = getServiceById(fixed.category, fixed.serviceId);
+                if (service) {
+                    const priceInEGP = service.currency === 'USD' ? service.cost * rate : service.cost;
+                    total += priceInEGP * (fixed.quantity || 1);
+                }
+            });
+            return total;
         };
 
-        const renderCalculatorPackagesSection = () => {
-            const container = document.getElementById('calculator-packages-section');
-            const header = document.getElementById('individual-items-header');
-            if (!servicesData.packages || servicesData.packages.length === 0) { container.innerHTML = ''; return; }
-            const rate = parseFloat(usdRateInput.value) || 1;
-            const packagesHtml = servicesData.packages.map((pkg, index) => {
-                let perPersonCost = 0;
-                if (pkg.fixedPrice > 0) perPersonCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
-                else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); perPersonCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
-                const descriptionSnippet = pkg.description.length > 100 ? pkg.description.substring(0, 100) + '...' : pkg.description;
-                return `<div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"><div class="p-6 flex-1"><h3 class="text-xl font-bold text-gray-800">${pkg.title}</h3><p class="text-gray-600 mt-2">${descriptionSnippet}</p></div><div class="bg-gray-50 p-4"><div class="flex justify-between items-center mb-3"><div><p class="text-sm text-gray-500">Starting from (per person)</p><p class="text-2xl font-bold text-green-600">${perPersonCost.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div><button data-pkg-index="${index}" class="preview-package-btn text-sm font-semibold text-blue-600 hover:underline">Preview</button></div><div class="flex items-center space-x-2"><label for="person-count-${index}" class="text-sm font-semibold">Persons:</label><input type="number" id="person-count-${index}" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner"><button data-pkg-index="${index}" class="select-package-btn flex-1 font-semibold bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700">Add to Trip</button></div></div></div>`;
-            }).join('');
-            container.innerHTML = `<h2 class="text-2xl font-bold text-gray-700 mb-4">Available Packages</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-6">${packagesHtml}</div>`;
-        };
+        const openProgramDetailsModal = (progIndex) => {
+            const program = appData.programs[progIndex];
+            if (!program) return;
 
-        const renderCalculatorSelectedPackage = () => {
-            const container = document.getElementById('calculator-selected-package-section');
-            if (selectedPackages.length === 0) { container.innerHTML = ''; return; }
-            const packagesHtml = selectedPackages.map((p, index) => {
-                const { pkg, numPeople, totalCostEGP } = p;
-                return `<div class="bg-blue-50 border-2 border-blue-200 p-6 rounded-xl shadow-lg mb-4"><div class="flex justify-between items-center mb-2"><h2 class="text-2xl font-bold text-blue-800">Selected Package</h2><button data-selected-pkg-index="${index}" class="remove-selected-package-btn text-red-600 hover:text-red-800 font-semibold flex items-center space-x-1"><i data-lucide="x-circle" class="w-5 h-5 pointer-events-none"></i><span>Remove</span></button></div><div class="flex justify-between items-end"><div><p class="text-xl font-semibold">${pkg.title}</p><p class="text-gray-600">${numPeople} x Person(s)</p></div><div><p class="text-sm text-gray-500">Package Subtotal</p><p class="text-2xl font-bold text-blue-700">${totalCostEGP.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div></div></div>`;
-            }).join('');
-            container.innerHTML = packagesHtml;
-            lucide.createIcons();
-        };
+            const itineraryHtml = (program.itinerary || []).map(day => `
+                <div class="mb-3 pb-3 border-b last:border-b-0">
+                    <p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p>
+                    <p class="text-gray-600 text-sm">${day.description}</p>
+                </div>
+            `).join('');
 
-        // --- 7. EVENT HANDLERS & LOGIC ---
+            const includesHtml = (program.includes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
+            const excludesHtml = (program.excludes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
 
-        const handleSaveChanges = () => {
-            savePricesBtn.disabled = true;
-            savePricesBtn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 loader"></i><span class="ml-2">Saving...</span>`;
-            lucide.createIcons();
-            showToast('Saving data to Local Storage...', 'info');
-            setTimeout(() => {
-                try {
-                    Object.keys(servicesData).forEach(category => { if (category !== 'packages') { servicesData[category] = servicesData[category].map(item => { if (item.id.startsWith('new_')) item.id = `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; return item; }); } });
-                    saveServicesToLocalStorage();
-                    updateChannel.postMessage('data_updated');
-                    showToast('All data saved successfully!', 'success');
-                    renderAdminPanel();
-                } catch (error) { console.error("Error saving data: ", error); showToast('Error saving data. Check console.', 'error'); }
-                finally { savePricesBtn.disabled = false; savePricesBtn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i><span class="ml-2">Save All Data</span>`; lucide.createIcons(); }
-            }, 500);
-        };
-
-        // --- 8. PACKAGE EVENT HANDLERS ---
-
-        const openAdminPackageModal = (pkgIndex = null) => {
-            const isEditing = pkgIndex !== null && servicesData.packages[pkgIndex] !== undefined;
-            const pkg = isEditing ? servicesData.packages[pkgIndex] : null;
-            const renderPackageItems = (items) => items.map((item, itemIndex) => { const optionsHtml = (servicesData[item.category] || []).map(s => `<option value="${s.id}" ${s.id === item.itemId ? 'selected' : ''}>${s.name} ${s.city ? `(${s.city})` : ''}</option>`).join(''); return `<div class="grid grid-cols-12 gap-2 items-center package-item-row"><select data-item-index="${itemIndex}" class="col-span-4 p-2 border rounded-md bg-white package-item-category">${serviceCategories.map(c => `<option value="${c}" ${c === item.category ? 'selected' : ''}>${c}</option>`).join('')}</select><select data-item-index="${itemIndex}" class="col-span-5 p-2 border rounded-md bg-white package-item-id"><option value="">Select Item...</option>${optionsHtml}</select><input type="number" min="1" value="${item.quantity}" data-item-index="${itemIndex}" class="col-span-2 p-2 border rounded-md shadow-inner package-item-quantity"><button data-item-index="${itemIndex}" class="col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-package-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`; }).join('');
-            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${isEditing ? 'Edit' : 'Create'} Package</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="space-y-4"><div><label class="font-semibold text-gray-700">Package Title</label><input id="package-title-input" type="text" value="${pkg?.title || ''}" class="w-full mt-1 p-2 border rounded-md shadow-inner"></div><div><label class="font-semibold text-gray-700">Package Description</label><textarea id="package-desc-input" rows="3" class="w-full mt-1 p-2 border rounded-md shadow-inner">${pkg?.description || ''}</textarea></div><div class="grid grid-cols-2 gap-4"><label class="font-semibold text-gray-700 col-span-2">Package Price (Per Person)</label><div><label class="text-sm">Fixed Price (optional)</label><input id="package-price-input" type="number" value="${pkg?.fixedPrice || ''}" placeholder="Overrides item sum" class="w-full mt-1 p-2 border rounded-md shadow-inner"></div><div><label class="text-sm">Currency</label><select id="package-currency-select" class="w-full mt-1 p-2 border rounded-md bg-white"><option value="EGP" ${pkg?.currency === 'EGP' ? 'selected' : ''}>EGP</option><option value="USD" ${pkg?.currency === 'USD' ? 'selected' : ''}>USD</option></select></div></div><div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Package Items (for reference)</h3><button id="add-package-item-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Item</button></div><div id="package-items-container" class="space-y-2 p-2 bg-gray-50 rounded-md">${renderPackageItems(pkg?.items || [])}</div></div></div><div class="mt-6 flex justify-end"><button id="save-package-btn" data-pkg-index="${isEditing ? pkgIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700">Save Package</button></div></div>`;
+            modalContent.innerHTML = `<div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">${program.title}</h2>
+                    <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button>
+                </div>
+                <div class="space-y-6">
+                    <div><h3 class="text-lg font-semibold text-blue-600 mb-2">Itinerary</h3>${itineraryHtml}</div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div><h3 class="text-lg font-semibold text-green-600 mb-2">Includes</h3><ul class="list-disc list-inside space-y-1">${includesHtml}</ul></div>
+                        <div><h3 class="text-lg font-semibold text-red-600 mb-2">Excludes</h3><ul class="list-disc list-inside space-y-1">${excludesHtml}</ul></div>
+                    </div>
+                </div>
+            </div>`;
             lucide.createIcons(); openModal();
         };
 
-        const openPreviewPackageModal = (pkgIndex) => {
-            const pkg = servicesData.packages[pkgIndex]; if (!pkg) return;
-            const rate = parseFloat(usdRateInput.value) || 1;
-            let totalCost = 0;
-            if (pkg.fixedPrice > 0) totalCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
-            else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); totalCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
-            const itemsHtml = pkg.items.map(item => { const service = getServiceById(item.category, item.itemId); if (!service) return ''; return `<li class="flex justify-between items-center py-2 border-b"><div><p class="font-semibold">${service.name} ${service.city ? `(${service.city})` : ''}</p><p class="text-sm text-gray-500">${item.quantity} x ${service.cost.toLocaleString()} ${service.currency}</p></div></li>`; }).join('');
-            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${pkg.title}</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><p class="text-gray-600 mb-4">${pkg.description}</p><h3 class="font-bold text-lg mb-2">What's Included:</h3><ul class="mb-4">${itemsHtml}</ul><div class="text-right bg-gray-100 p-4 rounded-lg"><p class="text-sm font-medium text-gray-500">Total Price Per Person</p><p class="text-3xl font-bold text-blue-600">${totalCost.toLocaleString('en-EG', { style: 'currency', currency: 'EGP' })}</p></div></div>`;
+        const openTripPackageDetailsModal = (pkgIndex) => {
+            const pkgItem = currentTrip.packages[pkgIndex];
+            const program = appData.programs.find(p => p.id === pkgItem.programId);
+            if (!program) return;
+
+            const startDate = pkgItem.startDate ? new Date(pkgItem.startDate) : null;
+
+            const itineraryHtml = (program.itinerary || []).map((day, index) => {
+                let dateString = '';
+                if (startDate) {
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(currentDate.getDate() + index); // Use UTC to avoid timezone issues
+                    dateString = `(${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })})`;
+                }
+                return `
+                    <div class="mb-3 pb-3 border-b last:border-b-0">
+                        <p class="font-bold text-gray-800">Day ${day.day} <span class="text-blue-600 font-medium">${dateString}</span>: ${day.title}</p>
+                        <p class="text-gray-600 text-sm">${day.description}</p>
+                    </div>
+                `;
+            }).join('');
+            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${program.title}</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><div><h3 class="text-lg font-semibold text-blue-600 mb-2">Itinerary with Dates</h3>${itineraryHtml}</div></div>`;
             lucide.createIcons(); openModal();
         };
 
-        // --- 9. EVENT LISTENERS ---
+        const openProgramModal = (progIndex = null) => {
+            const isEditing = progIndex !== null;
+            const program = isEditing ? JSON.parse(JSON.stringify(appData.programs[progIndex])) : { id: `prog_${Date.now()}`, title: '', duration_days: 1, duration_nights: 0, breakdown: [], itinerary: [{ day: 1, title: '', description: '' }], includes: [''], excludes: [''], slots: [], fixedServices: [] };
 
-        document.addEventListener('DOMContentLoaded', () => {
+            const renderDynamicList = (items, listId, placeholder) => (items || []).map((item, index) => `<div class="flex items-center gap-2 mb-2"><input type="text" value="${item}" class="flex-1 w-full p-2 border rounded-md shadow-inner dynamic-list-input" data-list-id="${listId}" data-index="${index}" placeholder="${placeholder}"><button data-list-id="${listId}" data-index="${index}" class="p-2 text-red-500 hover:text-red-700 remove-dynamic-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
+            const renderItineraryList = (items) => (items || []).map((item, index) => `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">Day ${index + 1}</p><button data-index="${index}" class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" value="${item.title}" data-index="${index}" data-field="title" class="w-full p-2 border rounded-md shadow-inner mb-2 itinerary-input" placeholder="Day Title"><textarea data-index="${index}" data-field="description" class="w-full p-2 border rounded-md shadow-inner itinerary-input" rows="2" placeholder="Day Description">${item.description}</textarea></div>`).join('');
+            const renderSlotsList = (items) => (items || []).map((item, index) => `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-end"><button data-index="${index}" class="remove-slot-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="grid grid-cols-2 gap-4"><input type="text" value="${item.label}" data-index="${index}" data-field="label" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Slot Label (e.g., Cairo Hotel)"><input type="number" value="${item.nights || 1}" data-index="${index}" data-field="nights" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Nights/Units"><select data-index="${index}" data-field="category" class="w-full p-2 border rounded-md bg-white slot-input">${serviceCategories.map(c => `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select><input type="text" value="${(item.filter && item.filter.city) || ''}" data-index="${index}" data-field="city" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Filter by City (optional)"></div></div>`).join('');
+            const renderFixedServicesList = (items) => (items || []).map((item, index) => {
+                const optionsHtml = (appData.services[item.category] || []).map(s => `<option value="${s.id}" ${s.id === item.serviceId ? 'selected' : ''}>${s.name} ${s.city ? `(${s.city})` : ''}</option>`).join('');
+                return `<div class="p-3 bg-gray-100 rounded-md mb-2 grid grid-cols-12 gap-2 items-center"><select data-index="${index}" data-field="category" class="col-span-4 p-2 border rounded-md bg-white fixed-service-input fixed-service-category">${serviceCategories.map(c => `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select><select data-index="${index}" data-field="serviceId" class="col-span-5 p-2 border rounded-md bg-white fixed-service-input">${optionsHtml}</select><input type="number" value="${item.quantity || 1}" data-index="${index}" data-field="quantity" class="col-span-2 p-2 border rounded-md fixed-service-input"><button data-index="${index}" class="remove-fixed-service-btn col-span-1 text-red-500 justify-self-center"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`;
+            }).join('');
+
+            modalContent.innerHTML = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${isEditing ? 'Edit' : 'Create'} Program</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div>
+                <div class="space-y-4">
+                    <div><label class="font-semibold text-gray-700">Program Title</label><input id="program-title-input" type="text" value="${program.title}" class="w-full mt-1 p-2 border rounded-md shadow-inner"></div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="font-semibold">Duration (Days)</label><input id="program-days-input" type="number" value="${program.duration_days}" class="w-full mt-1 p-2 border rounded-md"></div>
+                        <div><label class="font-semibold">Duration (Nights)</label><input id="program-nights-input" type="number" value="${program.duration_nights}" class="w-full mt-1 p-2 border rounded-md"></div>
+                    </div>
+                    <div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Itinerary</h3><button id="add-itinerary-item-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Day</button></div><div id="itinerary-list" class="space-y-2">${renderItineraryList(program.itinerary)}</div></div>
+                    <div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Includes</h3><button data-list-id="includes" class="add-dynamic-item-btn text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Item</button></div><div id="includes-list">${renderDynamicList(program.includes, 'includes', 'e.g., Meet and greet service')}</div></div>
+                    <div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Excludes</h3><button data-list-id="excludes" class="add-dynamic-item-btn text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Item</button></div><div id="excludes-list">${renderDynamicList(program.excludes, 'excludes', 'e.g., International airfare')}</div></div>
+                    <div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Customizable Slots</h3><button id="add-slot-item-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Slot</button></div><div id="slots-list">${renderSlotsList(program.slots)}</div></div>
+                    <div><div class="flex justify-between items-center mb-2"><h3 class="font-semibold text-gray-700">Fixed Included Services</h3><button id="add-fixed-service-btn" class="text-sm bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600">Add Service</button></div><div id="fixed-services-list">${renderFixedServicesList(program.fixedServices)}</div></div>
+                </div>
+                <div class="mt-6 flex justify-end"><button id="save-program-btn" data-prog-index="${isEditing ? progIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700">Save Program</button></div></div>`;
+            lucide.createIcons();
+            openModal();
+        };
+
+        const initListeners = () => {
+            accountBtn.addEventListener('click', () => { currentUserRole = currentUserRole === 'admin' ? 'calculator' : 'admin'; updateDashboardUI(); });
+            document.getElementById('save-data-btn').addEventListener('click', saveData);
+
+            document.body.addEventListener('click', e => {
+                const target = e.target.closest('button'); if (!target) return;
+
+                if (target.id === 'create-new-program-btn') openProgramModal();
+                if (target.classList.contains('edit-program-btn')) openProgramModal(target.dataset.progIndex);
+                if (target.classList.contains('delete-program-btn')) { if (confirm('Are you sure you want to delete this program?')) { appData.programs.splice(target.dataset.progIndex, 1); renderAdminPrograms(); lucide.createIcons(); } }
+                if (target.classList.contains('add-service-btn')) { const category = target.dataset.category; appData.services[category].push({ id: `service_${Date.now()}`, name: 'New Service', cost: 0, currency: 'EGP', city: '' }); renderAdminServices(); lucide.createIcons(); }
+                if (target.classList.contains('remove-service-btn')) { const { category, index } = target.dataset; appData.services[category].splice(index, 1); renderAdminServices(); lucide.createIcons(); }
+                if (target.classList.contains('add-program-to-trip-btn')) {
+                    const paxInput = target.previousElementSibling; const pax = parseInt(paxInput.value);
+                    if (pax > 0) {
+                        const programId = target.dataset.progId; const program = appData.programs.find(p => p.id === programId);
+                        const newPackageItem = { programId, pax, slots: {}, startDate: '' };
+                        (program.slots || []).forEach(slot => { const filteredServices = (appData.services[slot.category] || []).filter(s => !slot.filter.city || s.city === slot.filter.city); if (filteredServices.length > 0) newPackageItem.slots[slot.id] = filteredServices[0].id; });
+                        currentTrip.packages.push(newPackageItem); renderCalculatorPanel();
+                    } else { showToast('Please enter a valid number of guests.', 'error'); }
+                }
+                if (target.classList.contains('remove-package-from-trip-btn')) { currentTrip.packages.splice(target.dataset.pkgIndex, 1); renderCalculatorPanel(); }
+                if (target.classList.contains('add-individual-to-trip-btn')) {
+                    const container = target.closest('.flex'); const select = container.querySelector('.individual-service-select'); const quantityInput = container.querySelector('.individual-quantity-input');
+                    const serviceId = select.value; const quantity = parseInt(quantityInput.value); const category = target.dataset.category;
+                    if (serviceId && quantity > 0) { if (!currentTrip.individualItems[category]) currentTrip.individualItems[category] = []; currentTrip.individualItems[category].push({ serviceId, quantity }); renderCalculatorPanel(); } else { showToast('Please select an item.', 'error'); }
+                }
+                if (target.classList.contains('remove-individual-from-trip-btn')) { const { category, index } = target.dataset; currentTrip.individualItems[category].splice(index, 1); renderCalculatorPanel(); }
+                if (target.classList.contains('details-program-btn')) openProgramDetailsModal(target.dataset.progIndex);
+                if (target.classList.contains('view-itinerary-btn')) openTripPackageDetailsModal(target.dataset.pkgIndex);
+                if (target.id === 'close-modal-btn') closeModal();
+                if (target.id === 'save-program-btn') {
+                    const { progIndex } = target.dataset; const isEditing = progIndex && progIndex !== '';
+                    const title = document.getElementById('program-title-input').value; if (!title) return showToast('Program Title is required.', 'error');
+
+                    const newProgram = {
+                        id: isEditing ? appData.programs[progIndex].id : `prog_${Date.now()}`, title,
+                        duration_days: parseInt(document.getElementById('program-days-input').value) || 0,
+                        duration_nights: parseInt(document.getElementById('program-nights-input').value) || 0,
+                        itinerary: Array.from(document.querySelectorAll('#itinerary-list > div')).map((div, index) => ({ day: index + 1, title: div.querySelector('[data-field="title"]').value, description: div.querySelector('[data-field="description"]').value })),
+                        includes: Array.from(document.querySelectorAll('#includes-list .dynamic-list-input')).map(input => input.value).filter(Boolean),
+                        excludes: Array.from(document.querySelectorAll('#excludes-list .dynamic-list-input')).map(input => input.value).filter(Boolean),
+                        slots: Array.from(document.querySelectorAll('#slots-list > .p-3')).map((div, index) => ({ id: `slot_${Date.now()}_${index}`, label: div.querySelector('[data-field="label"]').value, nights: parseInt(div.querySelector('[data-field="nights"]').value) || 1, category: div.querySelector('[data-field="category"]').value, filter: { city: div.querySelector('[data-field="city"]').value } })),
+                        fixedServices: Array.from(document.querySelectorAll('#fixed-services-list > .p-3')).map((div) => ({ category: div.querySelector('[data-field="category"]').value, serviceId: div.querySelector('[data-field="serviceId"]').value, quantity: parseInt(div.querySelector('[data-field="quantity"]').value) || 1 }))
+                    };
+
+                    if (isEditing) appData.programs[progIndex] = newProgram;
+                    else appData.programs.push(newProgram);
+
+                    renderAdminPrograms(); lucide.createIcons(); closeModal();
+                }
+
+                // Modal Dynamic Buttons
+                if (target.id === 'add-itinerary-item-btn') { document.getElementById('itinerary-list').insertAdjacentHTML('beforeend', `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">New Day</p><button class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" data-field="title" class="w-full p-2 border rounded-md shadow-inner mb-2 itinerary-input" placeholder="Day Title"><textarea data-field="description" class="w-full p-2 border rounded-md shadow-inner itinerary-input" rows="2" placeholder="Day Description"></textarea></div>`); lucide.createIcons(); }
+                if (target.classList.contains('remove-itinerary-item-btn')) target.closest('.p-3').remove();
+                if (target.classList.contains('add-dynamic-item-btn')) { target.closest('div').nextElementSibling.insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 mb-2"><input type="text" value="" class="flex-1 w-full p-2 border rounded-md shadow-inner dynamic-list-input" placeholder="New Item"><button class="p-2 text-red-500 hover:text-red-700 remove-dynamic-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`); lucide.createIcons(); }
+                if (target.classList.contains('remove-dynamic-item-btn')) target.closest('.flex').remove();
+                if (target.id === 'add-slot-item-btn') { document.getElementById('slots-list').insertAdjacentHTML('beforeend', `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-end"><button class="remove-slot-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="grid grid-cols-2 gap-4"><input type="text" data-field="label" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Slot Label"><input type="number" value="1" data-field="nights" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Nights"><select data-field="category" class="w-full p-2 border rounded-md bg-white slot-input">${serviceCategories.map(c => `<option value="${c}">${c}</option>`).join('')}</select><input type="text" data-field="city" class="w-full p-2 border rounded-md shadow-inner slot-input" placeholder="Filter by City"></div></div>`); lucide.createIcons(); }
+                if (target.classList.contains('remove-slot-item-btn')) target.closest('.p-3').remove();
+                if (target.id === 'add-fixed-service-btn') { document.getElementById('fixed-services-list').insertAdjacentHTML('beforeend', `<div class="p-3 bg-gray-100 rounded-md mb-2 grid grid-cols-12 gap-2 items-center"><select data-field="category" class="col-span-4 p-2 border rounded-md bg-white fixed-service-input fixed-service-category">${serviceCategories.map(c => `<option value="${c}">${c}</option>`).join('')}</select><select data-field="serviceId" class="col-span-5 p-2 border rounded-md bg-white fixed-service-input"></select><input type="number" value="1" data-field="quantity" class="col-span-2 p-2 border rounded-md fixed-service-input"><button class="remove-fixed-service-btn col-span-1 text-red-500 justify-self-center"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`); lucide.createIcons(); }
+                if (target.classList.contains('remove-fixed-service-btn')) target.closest('.p-3').remove();
+            });
+
+            document.body.addEventListener('change', e => {
+                if (e.target.matches('.trip-slot-select')) { const { pkgIndex, slotId } = e.target.dataset; currentTrip.packages[pkgIndex].slots[slotId] = e.target.value; renderCalculatorPanel(); }
+                if (e.target.matches('.fixed-service-category')) {
+                    const newCategory = e.target.value; const serviceSelect = e.target.nextElementSibling;
+                    const optionsHtml = (appData.services[newCategory] || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                    serviceSelect.innerHTML = optionsHtml;
+                }
+            });
+
+            document.body.addEventListener('input', e => {
+                if (e.target.matches('.admin-service-input')) { const { category, index, field } = e.target.dataset; let value = e.target.value; if (e.target.type === 'number') value = parseFloat(value) || 0; appData.services[category][index][field] = value; }
+                if (e.target.matches('.trip-pax-input')) { const { pkgIndex } = e.target.dataset; currentTrip.packages[pkgIndex].pax = parseInt(e.target.value) || 1; renderCalculatorPanel(); }
+                if (e.target.matches('.trip-start-date-input')) { const { pkgIndex } = e.target.dataset; currentTrip.packages[pkgIndex].startDate = e.target.value; renderCurrentTrip(); lucide.createIcons(); }
+            });
+        };
+
+        const initializeApp = () => {
             loader = document.getElementById('loader');
             appContainer = document.getElementById('app-container');
             adminPanel = document.getElementById('admin-panel');
             calculatorPanel = document.getElementById('calculator-panel');
-            savePricesBtn = document.getElementById('save-prices-btn');
-            usdRateInput = document.getElementById('usdRate');
-            modalBackdrop = document.getElementById('modal-backdrop');
-            modalContent = document.getElementById('modal-content');
             headerTitle = document.getElementById('header-title');
             accountBtn = document.getElementById('account-btn');
+            modalBackdrop = document.getElementById('modal-backdrop');
+            modalContent = document.getElementById('modal-content');
 
-            accountBtn.addEventListener('click', () => { currentUserRole = currentUserRole === 'admin' ? 'calculator' : 'admin'; updateDashboardUI(); });
-            savePricesBtn.addEventListener('click', handleSaveChanges);
-            usdRateInput.addEventListener('input', () => { renderCalculatorPackagesSection(); calculateAndDisplayTotal(); });
-            modalBackdrop.addEventListener('click', closeModal);
-
-            document.body.addEventListener('click', (e) => {
-                const target = e.target.closest('button'); if (!target) return;
-                const { category, index, pkgIndex, selectedPkgIndex } = target.dataset;
-
-                // Admin Panel
-                if (target.classList.contains('add-item-btn')) { const newItem = { id: `new_${Date.now()}`, name: '', cost: 0, currency: 'EGP', city: '' }; if (!servicesData[category]) servicesData[category] = []; servicesData[category].push(newItem); renderAdminPanel(); }
-                if (target.classList.contains('remove-item-btn')) { servicesData[category].splice(index, 1); renderAdminPanel(); }
-                if (target.id === 'create-new-package-btn') openAdminPackageModal();
-                if (target.classList.contains('edit-package-btn')) openAdminPackageModal(pkgIndex);
-                if (target.classList.contains('delete-package-btn')) { if (confirm('Are you sure you want to delete this package?')) { servicesData.packages.splice(pkgIndex, 1); renderAdminPackagesSection(); showToast('Package deleted.', 'info'); } }
-
-                // Calculator Panel
-                if (target.classList.contains('add-trip-item-btn')) { const newItem = { selectedItemId: '', quantity: 1, cost: 0, currency: 'EGP' }; if (!tripItems[category]) tripItems[category] = []; tripItems[category].push(newItem); renderCalculatorPanel(); }
-                if (target.classList.contains('remove-trip-item-btn')) { tripItems[category].splice(index, 1); renderCalculatorPanel(); }
-                if (target.classList.contains('preview-package-btn')) openPreviewPackageModal(pkgIndex);
-                if (target.classList.contains('select-package-btn')) {
-                    const numPeopleInput = document.getElementById(`person-count-${pkgIndex}`);
-                    const numPeople = parseInt(numPeopleInput.value);
-                    if (numPeople && numPeople > 0) {
-                        const pkg = servicesData.packages[pkgIndex];
-                        const rate = parseFloat(usdRateInput.value) || 1;
-                        let perPersonCost = 0;
-                        if (pkg.fixedPrice > 0) perPersonCost = pkg.currency === 'USD' ? pkg.fixedPrice * rate : pkg.fixedPrice;
-                        else pkg.items.forEach(item => { const service = getServiceById(item.category, item.itemId); if (service) { const itemTotal = (service.cost || 0) * (item.quantity || 1); perPersonCost += service.currency === 'USD' ? itemTotal * rate : itemTotal; } });
-                        selectedPackages.push({ pkg, numPeople, totalCostEGP: perPersonCost * numPeople });
-                        renderCalculatorPanel();
-                        showToast(`${pkg.title} added for ${numPeople} people.`, 'success');
-                    } else { showToast('Please enter a valid number of people.', 'error'); }
-                }
-                if (target.classList.contains('remove-selected-package-btn')) { selectedPackages.splice(selectedPkgIndex, 1); renderCalculatorPanel(); }
-
-                // Modal Clicks
-                if (target.id === 'close-modal-btn') closeModal();
-                if (target.id === 'add-package-item-btn') { const container = document.getElementById('package-items-container'); const newItemRow = document.createElement('div'); const newIndex = container.children.length; newItemRow.className = 'grid grid-cols-12 gap-2 items-center package-item-row'; newItemRow.innerHTML = `<select data-item-index="${newIndex}" class="col-span-4 p-2 border rounded-md bg-white package-item-category">${serviceCategories.map(c => `<option value="${c}">${c}</option>`).join('')}</select><select data-item-index="${newIndex}" class="col-span-5 p-2 border rounded-md bg-white package-item-id"><option value="">Select Item...</option></select><input type="number" min="1" value="1" data-item-index="${newIndex}" class="col-span-2 p-2 border rounded-md shadow-inner package-item-quantity"><button data-item-index="${newIndex}" class="col-span-1 text-red-500 hover:text-red-700 justify-self-center remove-package-item-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>`; container.appendChild(newItemRow); lucide.createIcons(); }
-                if (target.classList.contains('remove-package-item-btn')) { target.closest('.package-item-row').remove(); }
-                if (target.id === 'save-package-btn') {
-                    const { pkgIndex } = target.dataset;
-                    const isEditing = pkgIndex && pkgIndex !== '' && servicesData.packages[pkgIndex];
-                    const title = document.getElementById('package-title-input').value;
-                    const description = document.getElementById('package-desc-input').value;
-                    const fixedPrice = parseFloat(document.getElementById('package-price-input').value) || 0;
-                    const currency = document.getElementById('package-currency-select').value;
-                    const items = [];
-                    document.querySelectorAll('.package-item-row').forEach(row => { items.push({ category: row.querySelector('.package-item-category').value, itemId: row.querySelector('.package-item-id').value, quantity: parseInt(row.querySelector('.package-item-quantity').value) || 1 }); });
-                    if (!title) { showToast('Package title is required.', 'error'); return; }
-                    const newPackage = { id: isEditing ? servicesData.packages[pkgIndex].id : `pkg_${Date.now()}`, title, description, fixedPrice, currency, items };
-                    if (isEditing) { servicesData.packages[pkgIndex] = newPackage; } else { if (!servicesData.packages) servicesData.packages = []; servicesData.packages.push(newPackage); }
-                    saveServicesToLocalStorage();
-                    updateChannel.postMessage('data_updated');
-                    renderAdminPackagesSection(); closeModal(); showToast(`Package ${isEditing ? 'updated' : 'created'}!`, 'success');
-                }
-            });
-
-            document.body.addEventListener('input', (e) => {
-                const target = e.target;
-                const { category, index, field } = target.dataset;
-                if (target.classList.contains('admin-input')) { let value = target.value; if (target.type === 'number') value = parseFloat(value) || 0; servicesData[category][index][field] = value; }
-                if (target.classList.contains('calc-quantity')) { tripItems[category][index].quantity = parseInt(target.value) || 1; calculateAndDisplayTotal(); }
-            });
-
-            document.body.addEventListener('change', (e) => {
-                const target = e.target;
-                if (target.classList.contains('calc-select')) {
-                    const { category, index } = target.dataset;
-                    const selectedId = target.value;
-                    const selectedService = getServiceById(category, selectedId);
-                    tripItems[category][index].selectedItemId = selectedId;
-                    if (selectedService) { tripItems[category][index].cost = selectedService.cost; tripItems[category][index].currency = selectedService.currency; } else { tripItems[category][index].cost = 0; tripItems[category][index].currency = 'EGP'; }
-                    renderCalculatorPanel();
-                }
-                if (target.classList.contains('package-item-category')) {
-                    const itemIndex = target.dataset.itemIndex;
-                    const newCategory = target.value;
-                    const idSelect = document.querySelector(`.package-item-id[data-item-index='${itemIndex}']`);
-                    const optionsHtml = (servicesData[newCategory] || []).map(s => `<option value="${s.id}">${s.name} ${s.city ? `(${s.city})` : ''}</option>`).join('');
-                    idSelect.innerHTML = `<option value="">Select Item...</option>${optionsHtml}`;
-                }
-            });
-
-            // --- 10. APP STARTUP & REAL-TIME LISTENER ---
+            appData = loadData();
+            updateDashboardUI();
+            initListeners();
 
             updateChannel.onmessage = (event) => {
                 if (event.data === 'data_updated') {
-                    showToast('Data has been updated in another tab!', 'info');
-                    servicesData = loadServicesFromLocalStorage();
-                    tripItems = {};
-                    serviceCategories.forEach(cat => tripItems[cat] = []);
-                    selectedPackages = [];
-                    renderAdminPanel();
-                    renderCalculatorPanel();
+                    showToast('Data has been updated!', 'info');
+                    appData = loadData();
+                    currentTrip = { packages: [], individualItems: {} };
+                    if (currentUserRole === 'calculator') renderCalculatorPanel();
+                    else renderAdminPanel();
                 }
             };
 
-            servicesData = loadServicesFromLocalStorage();
-            serviceCategories.forEach(cat => tripItems[cat] = []);
-            renderAdminPanel();
-            renderCalculatorPanel();
-            updateDashboardUI();
             loader.style.display = 'none';
             appContainer.classList.remove('hidden');
-        });
+        };
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 
