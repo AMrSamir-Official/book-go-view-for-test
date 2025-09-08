@@ -85,6 +85,16 @@
         .animate-fadeInUp {
             animation: fadeInUp 0.5s ease-out forwards;
         }
+
+        /* Tab Styles */
+        .tab-button.active {
+            border-color: #3b82f6;
+            /* border-blue-600 */
+            color: #3b82f6;
+            /* text-blue-600 */
+            background-color: #eff6ff;
+            /* bg-blue-50 */
+        }
     </style>
 </head>
 
@@ -153,8 +163,8 @@
 
     <script>
         // --- GLOBAL VARIABLES & CONSTANTS ---
-        const LOCAL_STORAGE_KEY = 'bookAndGo_v22_final';
-        const updateChannel = new BroadcastChannel('book_and_go_updates_v22');
+        const LOCAL_STORAGE_KEY = 'bookAndGo_v24_complete';
+        const updateChannel = new BroadcastChannel('book_and_go_updates_v24');
         let appData = {};
         let currentTrip = { packages: [] };
         let currentUserRole = 'calculator';
@@ -193,6 +203,10 @@
                     id: 'prog_1',
                     title: 'Cairo & Nile Cruise',
                     description: 'A classic tour of Egypt\'s highlights.',
+                    itinerary: [
+                        { day: 1, title: 'Arrival Cairo', description: 'Meet & assist at Cairo International Airport, transfer to hotel & overnight in Cairo.' },
+                        { day: 2, title: 'Pyramids & Museum', description: 'Visit the Great Pyramids, Sphinx, and the Egyptian Museum.' }
+                    ],
                     includes: ['Meet and greet', 'All transfers'],
                     excludes: ['International airfare', 'Optional tours'],
                     priceTiers: [
@@ -315,10 +329,10 @@
         // --- CALCULATOR PANEL RENDER FUNCTIONS ---
         const renderProgramSelection = () => {
             const container = document.getElementById('program-selection-section');
-            const programsHtml = (appData.programs || []).map((prog) => {
+            const programsHtml = (appData.programs || []).map((prog, index) => {
                 const basePriceTier = (prog.priceTiers || []).find(t => t.price > 0) || prog.priceTiers[0];
                 const basePrice = basePriceTier ? `${basePriceTier.price.toLocaleString()} ${basePriceTier.currency}` : 'N/A';
-                return `<div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"><div class="p-5 flex-1"><h3 class="text-lg font-bold text-gray-800">${prog.title}</h3><p class="text-sm text-gray-600 mt-1">${prog.description || ''}</p></div><div class="bg-gray-50 p-3 border-t"><div class="flex justify-between items-center"><span class="text-xs text-gray-500">Starts from <strong class="text-gray-800">${basePrice}</strong></span><button data-prog-id="${prog.id}" class="add-program-to-trip-btn font-semibold bg-blue-600 text-white py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Add</button></div></div></div>`;
+                return `<div class="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"><div class="p-5 flex-1"><h3 class="text-lg font-bold text-gray-800">${prog.title}</h3><p class="text-sm text-gray-600 mt-1">${prog.description || ''}</p></div><div class="bg-gray-50 p-3 border-t"><div class="flex justify-between items-center"><button data-prog-index="${index}" class="preview-program-btn text-sm font-semibold text-blue-600 hover:underline">Preview</button><button data-prog-id="${prog.id}" class="add-program-to-trip-btn font-semibold bg-blue-600 text-white py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Add</button></div></div></div>`;
             }).join('');
             container.innerHTML = `<h2 class="text-2xl font-bold text-gray-800 mb-6">Select a Program</h2><div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">${programsHtml}</div>`;
         };
@@ -336,75 +350,89 @@
                 const paxOptions = (program.priceTiers || []).map(tier => `<option value="${tier.pax}" ${pkgItem.paxTier === tier.pax ? 'selected' : ''}>${tier.pax} Person(s)</option>`).join('');
                 const subtotal = calculatePackagePrice(pkgItem);
 
+                // --- Tab Content Generation ---
+                // Accommodation Tab Content
                 const accommodationHtml = (program.accommodations || []).map((acc, accIndex) => {
                     const city = getCityById(acc.cityId);
                     if (!city) return '';
                     const hotelOptions = (city.hotels || []).map(h => `<option value="${h.id}" ${pkgItem.accommodations[accIndex]?.hotelId === h.id ? 'selected' : ''}>${h.name}</option>`).join('');
-
                     let featuresHtml = '';
                     const selectedHotelId = pkgItem.accommodations[accIndex]?.hotelId;
                     if (selectedHotelId) {
                         const hotel = getHotelByIds(city.id, selectedHotelId);
                         if (hotel && hotel.features && hotel.features.length > 0) {
                             const featureOptions = hotel.features.map(feat => `<option value="${feat.id}" ${pkgItem.accommodations[accIndex]?.featureId === feat.id ? 'selected' : ''}>${feat.name} (+${feat.price} ${feat.currency})</option>`).join('');
-                            featuresHtml = `<select class="w-full mt-2 p-2 border rounded-md bg-white text-sm trip-hotel-feature-select" data-pkg-index="${index}" data-acc-index="${accIndex}">
-                               <option value="">No special feature</option>
-                               ${featureOptions}
-                           </select>`;
+                            featuresHtml = `<select class="w-full mt-2 p-2 border rounded-md bg-white text-sm trip-hotel-feature-select" data-pkg-index="${index}" data-acc-index="${accIndex}"><option value="">No special feature</option>${featureOptions}</select>`;
                         }
                     }
                     return `<div class="p-3 bg-gray-50 rounded-md border"><label class="text-sm font-semibold text-gray-600">${acc.nights} Nights in ${city.name}</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-hotel-select"><option value="">Select Hotel...</option>${hotelOptions}</select>${featuresHtml}</div>`;
                 }).join('');
 
-                let individualServicesHtml = `<div class="p-3 bg-gray-50 rounded-md border mt-3">
-                    <h4 class="text-sm font-semibold text-gray-600 mb-2">Additional Services</h4>
-                    <div class="grid grid-cols-1 gap-2">`;
-
-                if (Object.keys(pkgItem.individualItems || {}).length === 0) {
-                    individualServicesHtml += `<p class="text-xs text-gray-500 text-center py-2">No additional services added.</p>`;
+                // Additional Services Tab Content
+                let individualServicesHtml = `<div class="grid grid-cols-1 gap-2">`;
+                if (Object.values(pkgItem.individualItems || {}).flatMap(i => i).length === 0) {
+                    individualServicesHtml += `<p class="text-sm text-gray-500 text-center py-4">No additional services added yet.</p>`;
                 } else {
                     Object.entries(pkgItem.individualItems || {}).forEach(([category, items]) => {
                         items.forEach((item, itemIndex) => {
                             const service = getIndividualServiceById(category, item.serviceId);
                             if (service) {
                                 const priceInUSD = (service.currency === 'EGP' ? service.cost / rate : service.cost) * item.quantity;
-                                individualServicesHtml += `
-                                <div class="bg-white p-2.5 rounded-lg border flex items-center gap-3 shadow-sm animate-fadeInUp">
-                                    <i data-lucide="${categoryIcons[category] || 'plus'}" class="w-5 h-5 text-blue-600 flex-shrink-0"></i>
-                                    <div class="flex-1">
-                                        <p class="font-semibold text-sm text-gray-800">${service.name}</p>
-                                        <p class="text-xs text-gray-500">Quantity: ${item.quantity}</p>
-                                    </div>
-                                    <p class="font-semibold text-sm text-gray-900">${priceInUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
-                                    <button data-pkg-index="${index}" data-category="${category}" data-item-index="${itemIndex}" class="remove-individual-from-pkg-btn text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>
-                                </div>`;
+                                individualServicesHtml += `<div class="bg-white p-2.5 rounded-lg border flex items-center gap-3 shadow-sm animate-fadeInUp"><i data-lucide="${categoryIcons[category] || 'plus'}" class="w-5 h-5 text-blue-600 flex-shrink-0"></i><div class="flex-1"><p class="font-semibold text-sm text-gray-800">${service.name}</p><p class="text-xs text-gray-500">Quantity: ${item.quantity}</p></div><p class="font-semibold text-sm text-gray-900">${priceInUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p><button data-pkg-index="${index}" data-category="${category}" data-item-index="${itemIndex}" class="remove-individual-from-pkg-btn text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`;
                             }
                         });
                     });
                 }
-
-                individualServicesHtml += `</div><div class="border-t mt-3 pt-3 space-y-2">`;
-
+                individualServicesHtml += `</div><div class="border-t mt-4 pt-4 space-y-2">`;
                 genericServiceCategories.forEach(category => {
                     const optionsHtml = (appData.services[category] || []).map(item => `<option value="${item.id}">${item.name}</option>`).join('');
-                    individualServicesHtml += `<div class="flex items-center space-x-2">
-                        <select class="flex-1 w-full p-2 border rounded-md bg-white text-sm individual-service-select"><option value="">Add ${category.replace(/([A-Z])/g, ' $1')}...</option>${optionsHtml}</select>
-                        <input type="number" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner individual-quantity-input">
-                        <button data-pkg-index="${index}" data-category="${category}" class="add-individual-to-pkg-btn bg-green-500 text-white p-2 rounded-lg hover:bg-green-600"><i data-lucide="plus" class="w-5 h-5 pointer-events-none"></i></button>
-                    </div>`;
+                    individualServicesHtml += `<div class="flex items-center space-x-2"><select class="flex-1 w-full p-2 border rounded-md bg-white text-sm individual-service-select"><option value="">Add ${category.replace(/([A-Z])/g, ' $1')}...</option>${optionsHtml}</select><input type="number" value="1" min="1" class="p-2 border rounded-md w-20 shadow-inner individual-quantity-input"><button data-pkg-index="${index}" data-category="${category}" class="add-individual-to-pkg-btn bg-green-500 text-white p-2 rounded-lg hover:bg-green-600"><i data-lucide="plus" class="w-5 h-5 pointer-events-none"></i></button></div>`;
                 });
-                individualServicesHtml += '</div></div>';
+                individualServicesHtml += '</div>';
 
-                html += `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4 animate-fadeInUp"><div class="flex justify-between items-start"><h3 class="text-xl font-bold text-blue-800">${program.title}</h3><button data-pkg-index="${index}" class="remove-package-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><label class="text-sm font-semibold text-gray-600">Travelers</label><select data-pkg-index="${index}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-pax-select">${paxOptions}</select></div><div><label class="text-sm font-semibold text-gray-600">Arrival Date</label><input type="date" value="${pkgItem.startDate || ''}" data-pkg-index="${index}" class="p-2 border rounded-md w-full text-sm trip-start-date-input mt-1"></div></div><hr class="my-4"><h4 class="font-semibold mb-2">Accommodation</h4><div class="space-y-3">${accommodationHtml}</div>${individualServicesHtml}<div class="mt-4 pt-2 border-t text-right"><p class="font-bold text-lg text-blue-700">Package Subtotal: ${subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p></div></div>`;
+                // Itinerary Tab Content
+                let itineraryHtml = '<div class="space-y-3">';
+                if (program.itinerary && program.itinerary.length > 0 && program.itinerary[0].title) {
+                    program.itinerary.forEach(day => {
+                        itineraryHtml += `<div class="pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm mt-1">${day.description}</p></div>`;
+                    });
+                } else {
+                    itineraryHtml += '<p class="text-sm text-gray-500 text-center py-4">No itinerary has been provided for this program.</p>';
+                }
+                itineraryHtml += '</div>';
+
+                // --- Final Card Assembly ---
+                html += `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4 animate-fadeInUp">
+                    <div class="flex justify-between items-start"><h3 class="text-xl font-bold text-blue-800">${program.title}</h3><button data-pkg-index="${index}" class="remove-package-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div><label class="text-sm font-semibold text-gray-600">Travelers</label><select data-pkg-index="${index}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-pax-select">${paxOptions}</select></div>
+                        <div><label class="text-sm font-semibold text-gray-600">Arrival Date</label><input type="date" value="${pkgItem.startDate || ''}" data-pkg-index="${index}" class="p-2 border rounded-md w-full text-sm trip-start-date-input mt-1"></div>
+                    </div>
+                    <div class="mt-4 bg-white/60 rounded-lg p-1">
+                        <div class="border-b border-gray-300">
+                            <nav class="-mb-px flex gap-2" aria-label="Tabs">
+                                <button data-pkg-index="${index}" data-tab-toggle="accommodation" class="tab-button active font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Accommodation</button>
+                                <button data-pkg-index="${index}" data-tab-toggle="services" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Additional Services</button>
+                                <button data-pkg-index="${index}" data-tab-toggle="itinerary" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Itinerary</button>
+                            </nav>
+                        </div>
+                        <div class="p-4 bg-white rounded-b-md">
+                            <div data-pkg-index="${index}" data-tab-content="accommodation" class="space-y-3">${accommodationHtml}</div>
+                            <div data-pkg-index="${index}" data-tab-content="services" class="hidden">${individualServicesHtml}</div>
+                            <div data-pkg-index="${index}" data-tab-content="itinerary" class="hidden">${itineraryHtml}</div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t text-right">
+                        <p class="font-bold text-lg text-blue-700">Package Subtotal: ${subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+                    </div>
+                </div>`;
             });
             container.innerHTML = html;
         };
         const renderGrandTotal = () => {
             const container = document.getElementById('grand-total-section');
             let total = 0;
-            currentTrip.packages.forEach(pkgItem => {
-                total += calculatePackagePrice(pkgItem);
-            });
+            currentTrip.packages.forEach(pkgItem => { total += calculatePackagePrice(pkgItem); });
             container.innerHTML = `<div class="bg-white p-6 rounded-xl shadow-lg"><div class="text-right"><p class="text-xl font-medium text-gray-600">Grand Total</p><p id="trip-total" class="text-5xl font-bold text-blue-600">${total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p></div></div>`;
         };
         const renderCalculatorPanel = () => {
@@ -421,9 +449,7 @@
             const rate = parseFloat(appData.exchangeRate) || 50;
             let totalUSD = 0;
             const priceTier = program.priceTiers.find(t => t.pax === pkgItem.paxTier);
-            if (priceTier) {
-                totalUSD += priceTier.currency === 'EGP' ? priceTier.price / rate : priceTier.price;
-            }
+            if (priceTier) { totalUSD += priceTier.currency === 'EGP' ? priceTier.price / rate : priceTier.price; }
             (pkgItem.accommodations || []).forEach(accChoice => {
                 if (accChoice.hotelId && accChoice.featureId) {
                     const hotel = getHotelByIds(accChoice.cityId, accChoice.hotelId);
@@ -446,13 +472,26 @@
         };
 
         // --- MODAL & FORM FUNCTIONS ---
+        const openProgramDetailsModal = (progIndex) => {
+            const program = appData.programs[progIndex];
+            if (!program) return;
+            const hasItinerary = program.itinerary && program.itinerary.length > 0 && program.itinerary[0].title;
+            const itineraryHtml = hasItinerary
+                ? program.itinerary.map(day => `<div class="mb-3 pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm">${day.description}</p></div>`).join('')
+                : '<p class="text-sm text-gray-500">No itinerary has been provided for this program.</p>';
+            const includesHtml = (program.includes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
+            const excludesHtml = (program.excludes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
+            const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${program.title}</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="space-y-6"><div><h3 class="text-lg font-semibold text-blue-600 mb-2">Itinerary</h3><div class="pl-2">${itineraryHtml}</div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><h3 class="text-lg font-semibold text-green-600 mb-2">Includes</h3><ul class="list-disc list-inside space-y-1">${includesHtml}</ul></div><div><h3 class="text-lg font-semibold text-red-600 mb-2">Excludes</h3><ul class="list-disc list-inside space-y-1">${excludesHtml}</ul></div></div></div></div>`;
+            openModal(html);
+        };
         const openProgramModal = (progIndex = null) => {
             const isEditing = progIndex !== null;
-            const program = isEditing ? JSON.parse(JSON.stringify(appData.programs[progIndex])) : { id: `prog_${Date.now()}`, title: '', description: '', includes: [''], excludes: [''], priceTiers: [{ pax: '1', price: 0, currency: 'USD' }], accommodations: [] };
+            const program = isEditing ? JSON.parse(JSON.stringify(appData.programs[progIndex])) : { id: `prog_${Date.now()}`, title: '', description: '', itinerary: [{ day: 1, title: '', description: '' }], includes: [''], excludes: [''], priceTiers: [{ pax: '1', price: 0, currency: 'USD' }], accommodations: [] };
             const renderPriceTiers = (tiers) => (tiers || []).map((tier, index) => `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="text" value="${tier.pax}" data-index="${index}" data-field="pax" class="w-1/3 p-2 border rounded price-tier-input" placeholder="e.g., 1 or 3-5"><input type="number" value="${tier.price}" data-index="${index}" data-field="price" class="w-1/3 p-2 border rounded price-tier-input" placeholder="Price"><select data-index="${index}" data-field="currency" class="w-1/3 p-2 border rounded bg-white price-tier-input"><option value="USD" ${tier.currency === 'USD' ? 'selected' : ''}>USD</option><option value="EGP" ${tier.currency === 'EGP' ? 'selected' : ''}>EGP</option></select><button class="text-red-500 remove-price-tier-btn" data-index="${index}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
             const renderAccommodations = (accs) => (accs || []).map((acc, index) => `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="number" value="${acc.nights || ''}" data-index="${index}" data-field="nights" class="w-1/3 p-2 border rounded program-acc-input" placeholder="Nights"><select data-index="${index}" data-field="cityId" class="w-2/3 p-2 border rounded bg-white program-acc-input">${(appData.cities || []).map(c => `<option value="${c.id}" ${acc.cityId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select><button class="text-red-500 remove-program-acc-btn" data-index="${index}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
-            const renderDynamicList = (items, listName) => (items || []).map((item) => `<div class="flex gap-2"><input value="${item}" class="w-full p-2 border rounded dynamic-list-input" data-list="${listName}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join('');
-            const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">${isEditing ? 'Edit' : 'Create'} Program</h2><button id="close-modal-btn"><i data-lucide="x"></i></button></div><div class="space-y-4"><div><label class="font-semibold">Title</label><input id="program-title" type="text" value="${program.title}" class="w-full p-2 border rounded mt-1"></div><div><label class="font-semibold">Description</label><textarea id="program-description" class="w-full p-2 border rounded mt-1">${program.description || ''}</textarea></div><div><h3 class="font-semibold">Price Tiers</h3><div id="price-tiers-list" class="space-y-2 mt-1">${renderPriceTiers(program.priceTiers)}</div><button id="add-price-tier-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Price Tier</button></div><div><h3 class="font-semibold">Accommodation Plan</h3><div id="program-acc-list" class="space-y-2 mt-1">${renderAccommodations(program.accommodations)}</div><button id="add-program-acc-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Accommodation Leg</button></div><div><h3 class="font-semibold">Includes</h3><div id="includes-list" class="space-y-2 mt-1">${renderDynamicList(program.includes, "includes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="includes">Add Include</button></div><div><h3 class="font-semibold">Excludes</h3><div id="excludes-list" class="space-y-2 mt-1">${renderDynamicList(program.excludes, "excludes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="excludes">Add Exclude</button></div></div><div class="mt-6 flex justify-end"><button id="save-program-btn" data-prog-index="${isEditing ? progIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg">Save Program</button></div></div>`;
+            const renderDynamicList = (items, listName) => (items || []).map((item) => `<div class="flex gap-2 mb-2"><input value="${item}" class="w-full p-2 border rounded dynamic-list-input" data-list="${listName}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join('');
+            const renderItinerary = (items) => (items || []).map((item, index) => `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">Day ${index + 1}</p><button data-index="${index}" class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" value="${item.title}" data-index="${index}" data-field="title" class="w-full p-2 border rounded-md mb-2 itinerary-input" placeholder="Day Title"><textarea data-index="${index}" data-field="description" class="w-full p-2 border rounded-md itinerary-input" rows="2" placeholder="Day Description">${item.description}</textarea></div>`).join('');
+            const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">${isEditing ? 'Edit' : 'Create'} Program</h2><button id="close-modal-btn"><i data-lucide="x"></i></button></div><div class="space-y-4"><div><label class="font-semibold">Title</label><input id="program-title" type="text" value="${program.title}" class="w-full p-2 border rounded mt-1"></div><div><label class="font-semibold">Description</label><textarea id="program-description" class="w-full p-2 border rounded mt-1">${program.description || ''}</textarea></div><div><h3 class="font-semibold">Price Tiers</h3><div id="price-tiers-list" class="space-y-2 mt-1">${renderPriceTiers(program.priceTiers)}</div><button id="add-price-tier-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Price Tier</button></div><div><h3 class="font-semibold">Accommodation Plan</h3><div id="program-acc-list" class="space-y-2 mt-1">${renderAccommodations(program.accommodations)}</div><button id="add-program-acc-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Accommodation</button></div><div><h3 class="font-semibold">Itinerary</h3><div id="itinerary-list" class="space-y-2 mt-1">${renderItinerary(program.itinerary)}</div><button id="add-itinerary-item-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Day</button></div><div><h3 class="font-semibold">Includes</h3><div id="includes-list" class="space-y-2 mt-1">${renderDynamicList(program.includes, "includes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="includes">Add Include</button></div><div><h3 class="font-semibold">Excludes</h3><div id="excludes-list" class="space-y-2 mt-1">${renderDynamicList(program.excludes, "excludes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="excludes">Add Exclude</button></div></div><div class="mt-6 flex justify-end"><button id="save-program-btn" data-prog-index="${isEditing ? progIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg">Save Program</button></div></div>`;
             openModal(html);
         };
 
@@ -462,6 +501,14 @@
             document.getElementById('save-data-btn').addEventListener('click', saveData);
             document.body.addEventListener('click', e => {
                 const target = e.target.closest('button'); if (!target) return;
+                if (target.classList.contains('tab-button')) {
+                    const { pkgIndex, tabToggle } = target.dataset;
+                    const pkgContainer = target.closest('.animate-fadeInUp');
+                    pkgContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    pkgContainer.querySelectorAll('[data-tab-content]').forEach(content => content.classList.add('hidden'));
+                    target.classList.add('active');
+                    pkgContainer.querySelector(`[data-tab-content="${tabToggle}"]`).classList.remove('hidden');
+                }
                 if (target.id === 'create-new-program-btn') openProgramModal();
                 if (target.classList.contains('edit-program-btn')) openProgramModal(target.dataset.progIndex);
                 if (target.classList.contains('delete-program-btn')) { if (confirm('Are you sure?')) { appData.programs.splice(target.dataset.progIndex, 1); renderAdminPrograms(); } }
@@ -477,13 +524,16 @@
                 if (target.classList.contains('remove-price-tier-btn')) target.parentElement.remove();
                 if (target.id === 'add-program-acc-btn') { document.getElementById('program-acc-list').insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="number" value="1" data-field="nights" class="w-1/3 p-2 border rounded program-acc-input" placeholder="Nights"><select data-field="cityId" class="w-2/3 p-2 border rounded bg-white program-acc-input">${(appData.cities || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select><button class="text-red-500 remove-program-acc-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`); lucide.createIcons(); }
                 if (target.classList.contains('remove-program-acc-btn')) target.parentElement.remove();
-                if (target.classList.contains('add-dynamic-list-item')) { document.getElementById(`${target.dataset.list}-list`).insertAdjacentHTML('beforeend', `<div class="flex gap-2"><input value="" class="w-full p-2 border rounded dynamic-list-input" data-list="${target.dataset.list}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`); lucide.createIcons(); }
+                if (target.classList.contains('add-dynamic-list-item')) { document.getElementById(`${target.dataset.list}-list`).insertAdjacentHTML('beforeend', `<div class="flex gap-2 mb-2"><input value="" class="w-full p-2 border rounded dynamic-list-input" data-list="${target.dataset.list}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`); lucide.createIcons(); }
                 if (target.classList.contains('remove-dynamic-list-item')) target.parentElement.remove();
-                if (target.id === 'save-program-btn') { const { progIndex } = target.dataset; const isEditing = progIndex && progIndex !== ''; const title = document.getElementById('program-title').value; if (!title) return showToast('Program Title is required.', 'error'); const newProgram = { id: isEditing ? appData.programs[progIndex].id : `prog_${Date.now()}`, title, description: document.getElementById('program-description').value, priceTiers: Array.from(document.querySelectorAll('#price-tiers-list > div')).map(div => ({ pax: div.querySelector('[data-field="pax"]').value, price: parseFloat(div.querySelector('[data-field="price"]').value) || 0, currency: div.querySelector('[data-field="currency"]').value, })), accommodations: Array.from(document.querySelectorAll('#program-acc-list > div')).map(div => ({ nights: parseInt(div.querySelector('[data-field="nights"]').value) || 0, cityId: div.querySelector('[data-field="cityId"]').value, })), includes: Array.from(document.querySelectorAll('[data-list="includes"]')).map(i => i.value).filter(Boolean), excludes: Array.from(document.querySelectorAll('[data-list="excludes"]')).map(i => i.value).filter(Boolean), }; if (isEditing) appData.programs[progIndex] = newProgram; else { if (!appData.programs) appData.programs = []; appData.programs.push(newProgram); } renderAdminPrograms(); closeModal(); }
+                if (target.id === 'add-itinerary-item-btn') { document.getElementById('itinerary-list').insertAdjacentHTML('beforeend', `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">New Day</p><button class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" data-field="title" class="w-full p-2 border rounded-md mb-2 itinerary-input" placeholder="Day Title"><textarea data-field="description" class="w-full p-2 border rounded-md itinerary-input" rows="2" placeholder="Day Description"></textarea></div>`); lucide.createIcons(); document.querySelectorAll('#itinerary-list .font-semibold').forEach((dayLabel, i) => dayLabel.textContent = `Day ${i + 1}`); }
+                if (target.classList.contains('remove-itinerary-item-btn')) { target.closest('.p-3').remove(); document.querySelectorAll('#itinerary-list .font-semibold').forEach((dayLabel, i) => dayLabel.textContent = `Day ${i + 1}`); }
+                if (target.id === 'save-program-btn') { const { progIndex } = target.dataset; const isEditing = progIndex && progIndex !== ''; const title = document.getElementById('program-title').value; if (!title) return showToast('Program Title is required.', 'error'); const newProgram = { id: isEditing ? appData.programs[progIndex].id : `prog_${Date.now()}`, title, description: document.getElementById('program-description').value, priceTiers: Array.from(document.querySelectorAll('#price-tiers-list > div')).map(div => ({ pax: div.querySelector('[data-field="pax"]').value, price: parseFloat(div.querySelector('[data-field="price"]').value) || 0, currency: div.querySelector('[data-field="currency"]').value, })), accommodations: Array.from(document.querySelectorAll('#program-acc-list > div')).map(div => ({ nights: parseInt(div.querySelector('[data-field="nights"]').value) || 0, cityId: div.querySelector('[data-field="cityId"]').value, })), itinerary: Array.from(document.querySelectorAll('#itinerary-list > div')).map((div, i) => ({ day: i + 1, title: div.querySelector('.itinerary-input[data-field="title"]').value, description: div.querySelector('.itinerary-input[data-field="description"]').value })), includes: Array.from(document.querySelectorAll('[data-list="includes"]')).map(i => i.value).filter(Boolean), excludes: Array.from(document.querySelectorAll('[data-list="excludes"]')).map(i => i.value).filter(Boolean), }; if (isEditing) appData.programs[progIndex] = newProgram; else { if (!appData.programs) appData.programs = []; appData.programs.push(newProgram); } renderAdminPrograms(); closeModal(); }
                 if (target.classList.contains('add-program-to-trip-btn')) { const { progId } = target.dataset; const program = appData.programs.find(p => p.id === progId); if (!program) return; const newPackage = { id: `trip_${Date.now()}`, programId: progId, paxTier: program.priceTiers.length > 0 ? program.priceTiers[0].pax : '', startDate: '', accommodations: (program.accommodations || []).map(acc => ({ cityId: acc.cityId, hotelId: '', featureId: '' })), individualItems: {} }; currentTrip.packages.push(newPackage); renderCalculatorPanel(); }
                 if (target.classList.contains('remove-package-from-trip-btn')) { currentTrip.packages.splice(target.dataset.pkgIndex, 1); renderCalculatorPanel(); }
                 if (target.classList.contains('add-individual-to-pkg-btn')) { const { pkgIndex, category } = target.dataset; const container = target.closest('.flex'); const select = container.querySelector('.individual-service-select'); const quantityInput = container.querySelector('.individual-quantity-input'); const serviceId = select.value; const quantity = parseInt(quantityInput.value); if (serviceId && quantity > 0) { const pkg = currentTrip.packages[pkgIndex]; if (!pkg.individualItems[category]) pkg.individualItems[category] = []; pkg.individualItems[category].push({ serviceId, quantity }); renderCalculatorPanel(); } else { showToast('Please select an item and quantity.', 'error'); } }
                 if (target.classList.contains('remove-individual-from-pkg-btn')) { const { pkgIndex, category, itemIndex } = target.dataset; currentTrip.packages[pkgIndex].individualItems[category].splice(itemIndex, 1); renderCalculatorPanel(); }
+                if (target.classList.contains('preview-program-btn')) { openProgramDetailsModal(target.dataset.progIndex); }
                 if (target.id === 'close-modal-btn') closeModal();
             });
             document.body.addEventListener('change', e => {
