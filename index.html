@@ -86,7 +86,6 @@
             animation: fadeInUp 0.5s ease-out forwards;
         }
 
-        /* Tab Styles */
         .tab-button.active {
             border-color: #3b82f6;
             /* border-blue-600 */
@@ -157,18 +156,18 @@
         <div id="toast-container" class="fixed top-20 right-5 z-[1001]"></div>
         <div id="modal-backdrop" class="modal-backdrop"></div>
         <div id="modal-content"
-            class="modal-content bg-white rounded-lg shadow-2xl w-11/12 md:w-3/4 lg:w-2/3 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            class="modal-content bg-white rounded-lg shadow-2xl w-11/12 md:w-1/2 max-h-[90vh] overflow-y-auto custom-scrollbar">
         </div>
     </div>
 
     <script>
         // --- GLOBAL VARIABLES & CONSTANTS ---
-        const LOCAL_STORAGE_KEY = 'bookAndGo_v24_complete';
-        const updateChannel = new BroadcastChannel('book_and_go_updates_v24');
+        const LOCAL_STORAGE_KEY = 'bookAndGo_v29_complete';
+        const updateChannel = new BroadcastChannel('book_and_go_updates_v29');
         let appData = {};
         let currentTrip = { packages: [] };
         let currentUserRole = 'calculator';
-        const genericServiceCategories = ['nileCruises', 'optionalTours', 'domesticFlights', 'entranceTickets', 'guides', 'transportation'];
+        const genericServiceCategories = ['optionalTours', 'domesticFlights', 'entranceTickets', 'guides', 'transportation'];
         const categoryIcons = {
             nileCruises: 'ship',
             optionalTours: 'camera',
@@ -182,48 +181,59 @@
             exchangeRate: 50.0,
             cities: [
                 {
-                    id: `city_${Date.now()}`, name: 'Cairo', hotels: [
+                    id: `city_1`, name: 'Cairo', hotels: [
                         {
-                            id: `hotel_${Date.now()}`, name: 'Ramses Hilton', features: [
-                                { id: `feat_${Date.now()}`, name: 'Nile View', price: 50, currency: 'USD' },
-                                { id: `feat_${Date.now() + 1}`, name: 'Half Board', price: 1500, currency: 'EGP' },
+                            id: `hotel_1`, name: 'Ramses Hilton', rooms: [
+                                {
+                                    id: `room_1`, name: 'Single', price: 140, currency: 'USD', views: [
+                                        { id: `view_1`, name: 'Standard City View', price: 0, currency: 'USD' },
+                                        { id: `view_2`, name: 'Deluxe Nile View', price: 30, currency: 'USD' },
+                                    ]
+                                },
+                                { id: `room_2`, name: 'DBL', price: 160, currency: 'USD', views: [] }
                             ]
                         }
                     ]
                 },
-                { id: `city_${Date.now() + 1}`, name: 'Luxor', hotels: [] }
+                { id: `city_2`, name: 'Luxor', hotels: [] }
+            ],
+            cruiseLines: [
+                {
+                    id: `cl_1`, name: 'Mayfair Cruises', cruises: [
+                        {
+                            id: `cruise_1`, name: 'MS Mayfair', rooms: [
+                                { id: `c_room_1`, name: 'Standard Cabin', price: 200, currency: 'USD' },
+                                { id: `c_room_2`, name: 'Upper Deck Cabin', price: 250, currency: 'USD' }
+                            ]
+                        }
+                    ]
+                }
             ],
             services: {
-                nileCruises: [{ id: `nc_${Date.now()}`, name: 'MS Mayfair Cruise', cost: 200, currency: 'USD' }],
-                guides: [{ id: `g_${Date.now()}`, name: 'Expert Egyptologist', cost: 4000, currency: 'EGP' }],
+                guides: [{ id: `g_1`, name: 'Expert Egyptologist', cost: 4000, currency: 'EGP' }],
                 optionalTours: [], domesticFlights: [], entranceTickets: [], transportation: [],
             },
             programs: [
                 {
                     id: 'prog_1',
-                    title: 'Cairo & Nile Cruise',
-                    description: 'A classic tour of Egypt\'s highlights.',
+                    title: 'Cairo & Nile Cruise Shell',
+                    description: 'A flexible package for Egypt\'s highlights.',
                     itinerary: [
-                        { day: 1, title: 'Arrival Cairo', description: 'Meet & assist at Cairo International Airport, transfer to hotel & overnight in Cairo.' },
-                        { day: 2, title: 'Pyramids & Museum', description: 'Visit the Great Pyramids, Sphinx, and the Egyptian Museum.' }
+                        { day: 1, title: 'Arrival Cairo', description: 'Meet & assist.' },
+                        { day: 2, title: 'Pyramids & Museum', description: 'Visit the Great Pyramids & Egyptian Museum.' }
                     ],
                     includes: ['Meet and greet', 'All transfers'],
-                    excludes: ['International airfare', 'Optional tours'],
+                    excludes: ['International airfare', 'Optional tours', 'Accommodation'],
                     priceTiers: [
-                        { pax: '1', price: 1200, currency: 'USD' },
-                        { pax: '2', price: 100000, currency: 'EGP' },
-                        { pax: '3-5', price: 2500, currency: 'USD' },
-                    ],
-                    accommodations: []
+                        { pax: '1', price: 500, currency: 'USD' },
+                        { pax: '2', price: 40000, currency: 'EGP' },
+                    ]
                 }
             ]
         };
-        if (defaultData.cities.length > 0) {
-            defaultData.programs[0].accommodations.push({ nights: 3, cityId: defaultData.cities[0].id });
-        }
         let loader, appContainer, adminPanel, calculatorPanel, headerTitle, accountBtn, modalBackdrop, modalContent;
 
-        // --- DATA MANAGEMENT ---
+        // --- DATA MANAGEMENT & UI HELPERS ---
         const loadData = () => {
             const data = localStorage.getItem(LOCAL_STORAGE_KEY);
             if (data) return JSON.parse(data);
@@ -235,8 +245,6 @@
             updateChannel.postMessage('data_updated');
             showToast('All changes saved successfully!', 'success');
         };
-
-        // --- UI HELPERS ---
         const showToast = (message, type = 'info') => {
             const toastContainer = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -293,27 +301,33 @@
             const container = document.getElementById('admin-accommodation-section');
             const citiesHtml = (appData.cities || []).map((city, cityIndex) => {
                 const hotelsHtml = (city.hotels || []).map((hotel, hotelIndex) => {
-                    const featuresHtml = (hotel.features || []).map((feature, featureIndex) => `<div class="flex items-center gap-2 text-sm ml-4 p-2 bg-gray-100 rounded"><i data-lucide="star" class="w-4 h-4 text-yellow-500"></i><span class="flex-1">${feature.name} (+${feature.price} ${feature.currency})</span><button class="text-red-500 hover:text-red-700 remove-feature-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}" data-feature-index="${featureIndex}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`).join('');
-                    return `<div class="p-3 border rounded-lg bg-white"><div class="flex justify-between items-center"><span class="font-semibold">${hotel.name}</span><button class="text-red-500 hover:text-red-700 remove-hotel-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-2 space-y-2">${featuresHtml}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-feature-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}">Add Feature</button></div>`;
+                    const roomsHtml = (hotel.rooms || []).map((room, roomIndex) => {
+                        const viewsHtml = (room.views || []).map((view, viewIndex) => `<div class="flex items-center gap-2 text-sm ml-8 p-2 bg-gray-100 rounded"><i data-lucide="image" class="w-4 h-4 text-gray-500"></i><span class="flex-1">${view.name} (+${view.price} ${view.currency})</span><button class="text-red-500 hover:text-red-700 remove-view-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}" data-room-index="${roomIndex}" data-view-index="${viewIndex}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`).join('');
+                        return `<div class="p-2 border rounded-lg bg-gray-50/50"><div class="flex justify-between items-center"><span class="font-semibold text-sm">${room.name} (${room.price} ${room.currency})</span><button class="text-red-500 hover:text-red-700 remove-room-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}" data-room-index="${roomIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-2 space-y-1">${viewsHtml}</div><button class="text-xs mt-2 text-blue-600 hover:underline add-view-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}" data-room-index="${roomIndex}">Add View</button></div>`;
+                    }).join('');
+                    return `<div class="p-3 border rounded-lg bg-white"><div class="flex justify-between items-center"><span class="font-semibold">${hotel.name}</span><button class="text-red-500 hover:text-red-700 remove-hotel-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-2 space-y-2">${roomsHtml}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-room-btn" data-city-index="${cityIndex}" data-hotel-index="${hotelIndex}">Add Room Type</button></div>`;
                 }).join('');
                 return `<div class="p-4 border rounded-xl bg-white shadow-lg"><div class="flex justify-between items-center"><h3 class="text-lg font-bold">${city.name}</h3><button class="text-red-500 hover:text-red-700 remove-city-btn" data-city-index="${cityIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-4 space-y-3">${hotelsHtml}</div><button class="mt-4 text-sm bg-blue-100 text-blue-800 font-semibold py-1 px-3 rounded-md hover:bg-blue-200 add-hotel-btn" data-city-index="${cityIndex}">Add Hotel</button></div>`;
             }).join('');
-            container.innerHTML = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">Accommodation Management</h2><button id="add-city-btn" class="text-sm bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700">Add City</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${citiesHtml}</div>`;
+            const cityManagementHtml = `<div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">Hotel Management</h2><button id="add-city-btn" class="text-sm bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700">Add City</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${citiesHtml}</div>`;
+
+            const cruisesHtml = (appData.cruiseLines || []).map((line, lineIndex) => {
+                const boatsHtml = (line.cruises || []).map((boat, boatIndex) => {
+                    const roomsHtml = (boat.rooms || []).map((room, roomIndex) => `<div class="flex items-center gap-2 text-sm ml-4 p-2 bg-gray-100 rounded"><i data-lucide="bed-double" class="w-4 h-4 text-gray-500"></i><span class="flex-1">${room.name} (${room.price} ${room.currency})</span><button class="text-red-500 hover:text-red-700 remove-cruise-room-btn" data-line-index="${lineIndex}" data-boat-index="${boatIndex}" data-room-index="${roomIndex}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`).join('');
+                    return `<div class="p-3 border rounded-lg bg-white"><div class="flex justify-between items-center"><span class="font-semibold">${boat.name}</span><button class="text-red-500 hover:text-red-700 remove-cruise-boat-btn" data-line-index="${lineIndex}" data-boat-index="${boatIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-2 space-y-2">${roomsHtml}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-cruise-room-btn" data-line-index="${lineIndex}" data-boat-index="${boatIndex}">Add Cabin Type</button></div>`;
+                }).join('');
+                return `<div class="p-4 border rounded-xl bg-white shadow-lg"><div class="flex justify-between items-center"><h3 class="text-lg font-bold">${line.name}</h3><button class="text-red-500 hover:text-red-700 remove-cruise-line-btn" data-line-index="${lineIndex}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-4 space-y-3">${boatsHtml}</div><button class="mt-4 text-sm bg-blue-100 text-blue-800 font-semibold py-1 px-3 rounded-md hover:bg-blue-200 add-cruise-boat-btn" data-line-index="${lineIndex}">Add Cruise Boat</button></div>`;
+            }).join('');
+            const cruiseManagementHtml = `<div class="flex justify-between items-center mb-4 mt-8"><h2 class="text-2xl font-bold text-gray-800">Nile Cruise Management</h2><button id="add-cruise-line-btn" class="text-sm bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700">Add Cruise Line</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${cruisesHtml}</div>`;
+
+            container.innerHTML = cityManagementHtml + '<hr class="my-8">' + cruiseManagementHtml;
         };
         const renderAdminServices = () => {
             const container = document.getElementById('admin-services-section');
             if (!appData.services) appData.services = {};
             let servicesHtml = '';
             genericServiceCategories.forEach(category => {
-                const itemsHtml = (appData.services[category] || []).map((item, index) => `
-                <div class="p-4 bg-gray-50 rounded-lg border">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                        <div class="lg:col-span-2"><label class="text-sm font-medium text-gray-600">Service Name</label><input type="text" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="mt-1 w-full p-2 border rounded-md admin-service-input"></div>
-                        <div><label class="text-sm font-medium text-gray-600">Cost</label><input type="number" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="mt-1 w-full p-2 border rounded-md admin-service-input"></div>
-                        <div><label class="text-sm font-medium text-gray-600">Currency</label><select data-category="${category}" data-index="${index}" data-field="currency" class="mt-1 w-full p-2 border rounded-md bg-white admin-service-input"><option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option><option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option></select></div>
-                        <div class="flex justify-end"><button data-category="${category}" data-index="${index}" class="remove-service-btn p-2 text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>
-                    </div>
-                </div>`).join('');
+                const itemsHtml = (appData.services[category] || []).map((item, index) => `<div class="p-4 bg-gray-50 rounded-lg border"><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end"><div class="lg:col-span-2"><label class="text-sm font-medium text-gray-600">Service Name</label><input type="text" value="${item.name}" data-category="${category}" data-index="${index}" data-field="name" class="mt-1 w-full p-2 border rounded-md admin-service-input"></div><div><label class="text-sm font-medium text-gray-600">Cost</label><input type="number" value="${item.cost}" data-category="${category}" data-index="${index}" data-field="cost" class="mt-1 w-full p-2 border rounded-md admin-service-input"></div><div><label class="text-sm font-medium text-gray-600">Currency</label><select data-category="${category}" data-index="${index}" data-field="currency" class="mt-1 w-full p-2 border rounded-md bg-white admin-service-input"><option value="USD" ${item.currency === 'USD' ? 'selected' : ''}>USD</option><option value="EGP" ${item.currency === 'EGP' ? 'selected' : ''}>EGP</option></select></div><div class="flex justify-end"><button data-category="${category}" data-index="${index}" class="remove-service-btn p-2 text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div></div></div>`).join('');
                 servicesHtml += `<div class="bg-white p-6 rounded-xl shadow-lg mb-6"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-semibold capitalize text-gray-700">${category.replace(/([A-Z])/g, ' $1')}</h3><button data-category="${category}" class="add-service-btn text-blue-500 hover:text-blue-700"><i data-lucide="plus-circle" class="w-6 h-6 pointer-events-none"></i></button></div><div class="space-y-3 max-h-96 overflow-y-auto pr-2 custom-scrollbar">${itemsHtml}</div></div>`;
             });
             container.innerHTML = `<h2 class="text-2xl font-bold text-gray-800">Other Services Prices</h2>${servicesHtml}</div>`;
@@ -351,38 +365,45 @@
                 const subtotal = calculatePackagePrice(pkgItem);
 
                 // --- Tab Content Generation ---
-                // Accommodation Tab Content
-                const accommodationHtml = (program.accommodations || []).map((acc, accIndex) => {
-                    const city = getCityById(acc.cityId);
-                    if (!city) return '';
-                    const hotelOptions = (city.hotels || []).map(h => `<option value="${h.id}" ${pkgItem.accommodations[accIndex]?.hotelId === h.id ? 'selected' : ''}>${h.name}</option>`).join('');
-                    let featuresHtml = '';
-                    const selectedHotelId = pkgItem.accommodations[accIndex]?.hotelId;
-                    if (selectedHotelId) {
-                        const hotel = getHotelByIds(city.id, selectedHotelId);
-                        if (hotel && hotel.features && hotel.features.length > 0) {
-                            const featureOptions = hotel.features.map(feat => `<option value="${feat.id}" ${pkgItem.accommodations[accIndex]?.featureId === feat.id ? 'selected' : ''}>${feat.name} (+${feat.price} ${feat.currency})</option>`).join('');
-                            featuresHtml = `<select class="w-full mt-2 p-2 border rounded-md bg-white text-sm trip-hotel-feature-select" data-pkg-index="${index}" data-acc-index="${accIndex}"><option value="">No special feature</option>${featureOptions}</select>`;
-                        }
-                    }
-                    return `<div class="p-3 bg-gray-50 rounded-md border"><label class="text-sm font-semibold text-gray-600">${acc.nights} Nights in ${city.name}</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-hotel-select"><option value="">Select Hotel...</option>${hotelOptions}</select>${featuresHtml}</div>`;
-                }).join('');
-
-                // Additional Services Tab Content
-                let individualServicesHtml = `<div class="grid grid-cols-1 gap-2">`;
-                if (Object.values(pkgItem.individualItems || {}).flatMap(i => i).length === 0) {
-                    individualServicesHtml += `<p class="text-sm text-gray-500 text-center py-4">No additional services added yet.</p>`;
+                let accommodationHtml = '<div class="space-y-4">';
+                if (!pkgItem.accommodations || pkgItem.accommodations.length === 0) {
+                    accommodationHtml += `<p class="text-sm text-gray-500 text-center py-4">No accommodation added yet.</p>`;
                 } else {
-                    Object.entries(pkgItem.individualItems || {}).forEach(([category, items]) => {
-                        items.forEach((item, itemIndex) => {
-                            const service = getIndividualServiceById(category, item.serviceId);
-                            if (service) {
-                                const priceInUSD = (service.currency === 'EGP' ? service.cost / rate : service.cost) * item.quantity;
-                                individualServicesHtml += `<div class="bg-white p-2.5 rounded-lg border flex items-center gap-3 shadow-sm animate-fadeInUp"><i data-lucide="${categoryIcons[category] || 'plus'}" class="w-5 h-5 text-blue-600 flex-shrink-0"></i><div class="flex-1"><p class="font-semibold text-sm text-gray-800">${service.name}</p><p class="text-xs text-gray-500">Quantity: ${item.quantity}</p></div><p class="font-semibold text-sm text-gray-900">${priceInUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p><button data-pkg-index="${index}" data-category="${category}" data-item-index="${itemIndex}" class="remove-individual-from-pkg-btn text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`;
-                            }
-                        });
+                    pkgItem.accommodations.forEach((acc, accIndex) => {
+                        let accCardHtml = `<div class="p-3 bg-gray-50 rounded-md border space-y-2 relative animate-fadeInUp">
+                            <button class="remove-accommodation-leg-btn absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600" data-pkg-index="${index}" data-acc-index="${accIndex}"><i data-lucide="x" class="w-4 h-4 pointer-events-none"></i></button>`;
+
+                        if (acc.type === 'hotel') {
+                            const cityOptions = (appData.cities || []).map(c => `<option value="${c.id}" ${acc.cityId === c.id ? 'selected' : ''}>${c.name}</option>`).join('');
+                            const hotelOptions = acc.cityId ? (getCityById(acc.cityId)?.hotels || []).map(h => `<option value="${h.id}" ${acc.hotelId === h.id ? 'selected' : ''}>${h.name}</option>`).join('') : '';
+                            const roomOptions = acc.hotelId ? (getHotelByIds(acc.cityId, acc.hotelId)?.rooms || []).map(r => `<option value="${r.id}" ${acc.roomId === r.id ? 'selected' : ''}>${r.name} - ${r.price} ${r.currency}</option>`).join('') : '';
+                            const viewOptions = acc.roomId ? (getHotelByIds(acc.cityId, acc.hotelId)?.rooms.find(r => r.id === acc.roomId)?.views || []).map(v => `<option value="${v.id}" ${acc.viewId === v.id ? 'selected' : ''}>${v.name} (+ ${v.price} ${v.currency})</option>`).join('') : '';
+
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">City</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-city-select"><option value="">Select City...</option>${cityOptions}</select></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">NO. nights</label><input type="number" value="${acc.nights}" data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md text-sm trip-nights-input"></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Hotel</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-hotel-select" ${!acc.cityId ? 'disabled' : ''}><option value="">Select Hotel...</option>${hotelOptions}</select></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Room</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-room-select" ${!acc.hotelId ? 'disabled' : ''}><option value="">Select Room...</option>${roomOptions}</select></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Room type</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-view-select" ${!acc.roomId ? 'disabled' : ''}><option value="">Select View...</option>${viewOptions}</select></div>`;
+                        } else if (acc.type === 'cruise') {
+                            const cruiseLineOptions = (appData.cruiseLines || []).map(l => `<option value="${l.id}" ${acc.cruiseLineId === l.id ? 'selected' : ''}>${l.name}</option>`).join('');
+                            const cruiseOptions = acc.cruiseLineId ? ((appData.cruiseLines || []).find(l => l.id === acc.cruiseLineId)?.cruises || []).map(c => `<option value="${c.id}" ${acc.cruiseId === c.id ? 'selected' : ''}>${c.name}</option>`).join('') : '';
+                            const roomOptions = acc.cruiseId ? ((appData.cruiseLines || []).find(l => l.id === acc.cruiseLineId)?.cruises.find(c => c.id === acc.cruiseId)?.rooms || []).map(r => `<option value="${r.id}" ${acc.roomId === r.id ? 'selected' : ''}>${r.name} - ${r.price} ${r.currency}</option>`).join('') : '';
+
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Cruise</label><p class="col-span-3 text-sm p-2 bg-white border rounded-md">Nile Cruise</p></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">NO. nights</label><input type="number" value="${acc.nights}" data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md text-sm trip-nights-input"></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Cruise Line</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-cruiseline-select"><option value="">Select Line...</option>${cruiseLineOptions}</select></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Boat</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-cruise-select" ${!acc.cruiseLineId ? 'disabled' : ''}><option value="">Select Boat...</option>${cruiseOptions}</select></div>`;
+                            accCardHtml += `<div class="grid grid-cols-5 gap-2 items-center"><label class="text-sm font-semibold text-gray-600 col-span-2">Cabin</label><select data-pkg-index="${index}" data-acc-index="${accIndex}" class="col-span-3 p-2 border rounded-md bg-white text-sm trip-cruiseroom-select" ${!acc.cruiseId ? 'disabled' : ''}><option value="">Select Cabin...</option>${roomOptions}</select></div>`;
+                        }
+                        accCardHtml += `</div>`;
+                        accommodationHtml += accCardHtml;
                     });
                 }
+                accommodationHtml += `</div><div class="flex gap-2 mt-4"><button class="add-hotel-leg-btn text-sm font-semibold bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg flex-1 hover:bg-blue-50" data-pkg-index="${index}">Add Hotel Stay</button><button class="add-cruise-leg-btn text-sm font-semibold bg-white border border-blue-600 text-blue-600 py-2 px-4 rounded-lg flex-1 hover:bg-blue-50" data-pkg-index="${index}">Add Cruise Stay</button></div>`;
+
+                let individualServicesHtml = `<div class="grid grid-cols-1 gap-2">`;
+                if (Object.values(pkgItem.individualItems || {}).flatMap(i => i).length === 0) { individualServicesHtml += `<p class="text-sm text-gray-500 text-center py-4">No additional services added yet.</p>`; }
+                else { Object.entries(pkgItem.individualItems || {}).forEach(([category, items]) => { items.forEach((item, itemIndex) => { const service = getIndividualServiceById(category, item.serviceId); if (service) { const priceInUSD = (service.currency === 'EGP' ? service.cost / rate : service.cost) * item.quantity; individualServicesHtml += `<div class="bg-white p-2.5 rounded-lg border flex items-center gap-3 shadow-sm animate-fadeInUp"><i data-lucide="${categoryIcons[category] || 'plus'}" class="w-5 h-5 text-blue-600 flex-shrink-0"></i><div class="flex-1"><p class="font-semibold text-sm text-gray-800">${service.name}</p><p class="text-xs text-gray-500">Quantity: ${item.quantity}</p></div><p class="font-semibold text-sm text-gray-900">${priceInUSD.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p><button data-pkg-index="${index}" data-category="${category}" data-item-index="${itemIndex}" class="remove-individual-from-pkg-btn text-red-500 hover:text-red-700 p-1"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button></div>`; } }); }); }
                 individualServicesHtml += `</div><div class="border-t mt-4 pt-4 space-y-2">`;
                 genericServiceCategories.forEach(category => {
                     const optionsHtml = (appData.services[category] || []).map(item => `<option value="${item.id}">${item.name}</option>`).join('');
@@ -390,42 +411,12 @@
                 });
                 individualServicesHtml += '</div>';
 
-                // Itinerary Tab Content
                 let itineraryHtml = '<div class="space-y-3">';
-                if (program.itinerary && program.itinerary.length > 0 && program.itinerary[0].title) {
-                    program.itinerary.forEach(day => {
-                        itineraryHtml += `<div class="pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm mt-1">${day.description}</p></div>`;
-                    });
-                } else {
-                    itineraryHtml += '<p class="text-sm text-gray-500 text-center py-4">No itinerary has been provided for this program.</p>';
-                }
+                if (program.itinerary && program.itinerary.length > 0 && program.itinerary[0].title) { program.itinerary.forEach(day => { itineraryHtml += `<div class="pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm mt-1">${day.description}</p></div>`; }); }
+                else { itineraryHtml += '<p class="text-sm text-gray-500 text-center py-4">No itinerary has been provided.</p>'; }
                 itineraryHtml += '</div>';
 
-                // --- Final Card Assembly ---
-                html += `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4 animate-fadeInUp">
-                    <div class="flex justify-between items-start"><h3 class="text-xl font-bold text-blue-800">${program.title}</h3><button data-pkg-index="${index}" class="remove-package-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>
-                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                        <div><label class="text-sm font-semibold text-gray-600">Travelers</label><select data-pkg-index="${index}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-pax-select">${paxOptions}</select></div>
-                        <div><label class="text-sm font-semibold text-gray-600">Arrival Date</label><input type="date" value="${pkgItem.startDate || ''}" data-pkg-index="${index}" class="p-2 border rounded-md w-full text-sm trip-start-date-input mt-1"></div>
-                    </div>
-                    <div class="mt-4 bg-white/60 rounded-lg p-1">
-                        <div class="border-b border-gray-300">
-                            <nav class="-mb-px flex gap-2" aria-label="Tabs">
-                                <button data-pkg-index="${index}" data-tab-toggle="accommodation" class="tab-button active font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Accommodation</button>
-                                <button data-pkg-index="${index}" data-tab-toggle="services" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Additional Services</button>
-                                <button data-pkg-index="${index}" data-tab-toggle="itinerary" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Itinerary</button>
-                            </nav>
-                        </div>
-                        <div class="p-4 bg-white rounded-b-md">
-                            <div data-pkg-index="${index}" data-tab-content="accommodation" class="space-y-3">${accommodationHtml}</div>
-                            <div data-pkg-index="${index}" data-tab-content="services" class="hidden">${individualServicesHtml}</div>
-                            <div data-pkg-index="${index}" data-tab-content="itinerary" class="hidden">${itineraryHtml}</div>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t text-right">
-                        <p class="font-bold text-lg text-blue-700">Package Subtotal: ${subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
-                    </div>
-                </div>`;
+                html += `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-4 animate-fadeInUp"><div class="flex justify-between items-start"><h3 class="text-xl font-bold text-blue-800">${program.title}</h3><button data-pkg-index="${index}" class="remove-package-from-trip-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"><div><label class="text-sm font-semibold text-gray-600">Travelers</label><select data-pkg-index="${index}" class="w-full mt-1 p-2 border rounded-md bg-white text-sm trip-pax-select">${paxOptions}</select></div><div><label class="text-sm font-semibold text-gray-600">Arrival Date</label><input type="date" value="${pkgItem.startDate || ''}" data-pkg-index="${index}" class="p-2 border rounded-md w-full text-sm trip-start-date-input mt-1"></div></div><div class="mt-4 bg-white/60 rounded-lg p-1"><div class="border-b border-gray-300"><nav class="-mb-px flex gap-2" aria-label="Tabs"><button data-pkg-index="${index}" data-tab-toggle="accommodation" class="tab-button active font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Accommodation</button><button data-pkg-index="${index}" data-tab-toggle="services" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Additional Services</button><button data-pkg-index="${index}" data-tab-toggle="itinerary" class="tab-button font-semibold py-2 px-4 text-sm rounded-t-md border-b-2 border-transparent hover:text-blue-600 transition-colors">Itinerary</button></nav></div><div class="p-4 bg-white rounded-b-md"><div data-pkg-index="${index}" data-tab-content="accommodation" class="space-y-3">${accommodationHtml}</div><div data-pkg-index="${index}" data-tab-content="services" class="hidden">${individualServicesHtml}</div><div data-pkg-index="${index}" data-tab-content="itinerary" class="hidden">${itineraryHtml}</div></div></div><div class="mt-4 pt-4 border-t text-right"><p class="font-bold text-lg text-blue-700">Package Subtotal: ${subtotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p></div></div>`;
             });
             container.innerHTML = html;
         };
@@ -451,13 +442,24 @@
             const priceTier = program.priceTiers.find(t => t.pax === pkgItem.paxTier);
             if (priceTier) { totalUSD += priceTier.currency === 'EGP' ? priceTier.price / rate : priceTier.price; }
             (pkgItem.accommodations || []).forEach(accChoice => {
-                if (accChoice.hotelId && accChoice.featureId) {
+                let accommodationNightlyRate = 0;
+                if (accChoice.type === 'hotel' && accChoice.hotelId && accChoice.roomId) {
                     const hotel = getHotelByIds(accChoice.cityId, accChoice.hotelId);
-                    if (hotel && hotel.features) {
-                        const feature = hotel.features.find(f => f.id === accChoice.featureId);
-                        if (feature) totalUSD += feature.currency === 'EGP' ? feature.price / rate : feature.price;
+                    const room = hotel?.rooms.find(r => r.id === accChoice.roomId);
+                    if (room) {
+                        accommodationNightlyRate += room.currency === 'EGP' ? room.price / rate : room.price;
+                        if (accChoice.viewId) {
+                            const view = room.views.find(v => v.id === accChoice.viewId);
+                            if (view) accommodationNightlyRate += view.currency === 'EGP' ? view.price / rate : view.price;
+                        }
                     }
+                } else if (accChoice.type === 'cruise' && accChoice.cruiseLineId && accChoice.cruiseId && accChoice.roomId) {
+                    const line = (appData.cruiseLines || []).find(l => l.id === accChoice.cruiseLineId);
+                    const boat = line?.cruises.find(c => c.id === accChoice.cruiseId);
+                    const room = boat?.rooms.find(r => r.id === accChoice.roomId);
+                    if (room) { accommodationNightlyRate += room.currency === 'EGP' ? room.price / rate : room.price; }
                 }
+                totalUSD += accommodationNightlyRate * (accChoice.nights || 0);
             });
             Object.entries(pkgItem.individualItems || {}).forEach(([category, items]) => {
                 items.forEach(item => {
@@ -476,9 +478,7 @@
             const program = appData.programs[progIndex];
             if (!program) return;
             const hasItinerary = program.itinerary && program.itinerary.length > 0 && program.itinerary[0].title;
-            const itineraryHtml = hasItinerary
-                ? program.itinerary.map(day => `<div class="mb-3 pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm">${day.description}</p></div>`).join('')
-                : '<p class="text-sm text-gray-500">No itinerary has been provided for this program.</p>';
+            const itineraryHtml = hasItinerary ? program.itinerary.map(day => `<div class="mb-3 pb-3 border-b last:border-b-0"><p class="font-bold text-gray-800">Day ${day.day}: ${day.title}</p><p class="text-gray-600 text-sm">${day.description}</p></div>`).join('') : '<p class="text-sm text-gray-500">No itinerary provided.</p>';
             const includesHtml = (program.includes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
             const excludesHtml = (program.excludes || []).map(item => `<li class="text-gray-700">${item}</li>`).join('');
             const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold text-gray-800">${program.title}</h2><button id="close-modal-btn" class="text-gray-500 hover:text-gray-800"><i data-lucide="x" class="w-6 h-6"></i></button></div><div class="space-y-6"><div><h3 class="text-lg font-semibold text-blue-600 mb-2">Itinerary</h3><div class="pl-2">${itineraryHtml}</div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><h3 class="text-lg font-semibold text-green-600 mb-2">Includes</h3><ul class="list-disc list-inside space-y-1">${includesHtml}</ul></div><div><h3 class="text-lg font-semibold text-red-600 mb-2">Excludes</h3><ul class="list-disc list-inside space-y-1">${excludesHtml}</ul></div></div></div></div>`;
@@ -486,12 +486,11 @@
         };
         const openProgramModal = (progIndex = null) => {
             const isEditing = progIndex !== null;
-            const program = isEditing ? JSON.parse(JSON.stringify(appData.programs[progIndex])) : { id: `prog_${Date.now()}`, title: '', description: '', itinerary: [{ day: 1, title: '', description: '' }], includes: [''], excludes: [''], priceTiers: [{ pax: '1', price: 0, currency: 'USD' }], accommodations: [] };
+            const program = isEditing ? JSON.parse(JSON.stringify(appData.programs[progIndex])) : { id: `prog_${Date.now()}`, title: '', description: '', itinerary: [{ day: 1, title: '', description: '' }], includes: [''], excludes: [''], priceTiers: [{ pax: '1', price: 0, currency: 'USD' }] };
             const renderPriceTiers = (tiers) => (tiers || []).map((tier, index) => `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="text" value="${tier.pax}" data-index="${index}" data-field="pax" class="w-1/3 p-2 border rounded price-tier-input" placeholder="e.g., 1 or 3-5"><input type="number" value="${tier.price}" data-index="${index}" data-field="price" class="w-1/3 p-2 border rounded price-tier-input" placeholder="Price"><select data-index="${index}" data-field="currency" class="w-1/3 p-2 border rounded bg-white price-tier-input"><option value="USD" ${tier.currency === 'USD' ? 'selected' : ''}>USD</option><option value="EGP" ${tier.currency === 'EGP' ? 'selected' : ''}>EGP</option></select><button class="text-red-500 remove-price-tier-btn" data-index="${index}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
-            const renderAccommodations = (accs) => (accs || []).map((acc, index) => `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="number" value="${acc.nights || ''}" data-index="${index}" data-field="nights" class="w-1/3 p-2 border rounded program-acc-input" placeholder="Nights"><select data-index="${index}" data-field="cityId" class="w-2/3 p-2 border rounded bg-white program-acc-input">${(appData.cities || []).map(c => `<option value="${c.id}" ${acc.cityId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select><button class="text-red-500 remove-program-acc-btn" data-index="${index}"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`).join('');
             const renderDynamicList = (items, listName) => (items || []).map((item) => `<div class="flex gap-2 mb-2"><input value="${item}" class="w-full p-2 border rounded dynamic-list-input" data-list="${listName}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`).join('');
             const renderItinerary = (items) => (items || []).map((item, index) => `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">Day ${index + 1}</p><button data-index="${index}" class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" value="${item.title}" data-index="${index}" data-field="title" class="w-full p-2 border rounded-md mb-2 itinerary-input" placeholder="Day Title"><textarea data-index="${index}" data-field="description" class="w-full p-2 border rounded-md itinerary-input" rows="2" placeholder="Day Description">${item.description}</textarea></div>`).join('');
-            const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">${isEditing ? 'Edit' : 'Create'} Program</h2><button id="close-modal-btn"><i data-lucide="x"></i></button></div><div class="space-y-4"><div><label class="font-semibold">Title</label><input id="program-title" type="text" value="${program.title}" class="w-full p-2 border rounded mt-1"></div><div><label class="font-semibold">Description</label><textarea id="program-description" class="w-full p-2 border rounded mt-1">${program.description || ''}</textarea></div><div><h3 class="font-semibold">Price Tiers</h3><div id="price-tiers-list" class="space-y-2 mt-1">${renderPriceTiers(program.priceTiers)}</div><button id="add-price-tier-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Price Tier</button></div><div><h3 class="font-semibold">Accommodation Plan</h3><div id="program-acc-list" class="space-y-2 mt-1">${renderAccommodations(program.accommodations)}</div><button id="add-program-acc-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Accommodation</button></div><div><h3 class="font-semibold">Itinerary</h3><div id="itinerary-list" class="space-y-2 mt-1">${renderItinerary(program.itinerary)}</div><button id="add-itinerary-item-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Day</button></div><div><h3 class="font-semibold">Includes</h3><div id="includes-list" class="space-y-2 mt-1">${renderDynamicList(program.includes, "includes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="includes">Add Include</button></div><div><h3 class="font-semibold">Excludes</h3><div id="excludes-list" class="space-y-2 mt-1">${renderDynamicList(program.excludes, "excludes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="excludes">Add Exclude</button></div></div><div class="mt-6 flex justify-end"><button id="save-program-btn" data-prog-index="${isEditing ? progIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg">Save Program</button></div></div>`;
+            const html = `<div class="p-6"><div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">${isEditing ? 'Edit' : 'Create'} Program</h2><button id="close-modal-btn"><i data-lucide="x"></i></button></div><div class="space-y-4"><div><label class="font-semibold">Title</label><input id="program-title" type="text" value="${program.title}" class="w-full p-2 border rounded mt-1"></div><div><label class="font-semibold">Description</label><textarea id="program-description" class="w-full p-2 border rounded mt-1">${program.description || ''}</textarea></div><div><h3 class="font-semibold">Price Tiers (for base services only)</h3><div id="price-tiers-list" class="space-y-2 mt-1">${renderPriceTiers(program.priceTiers)}</div><button id="add-price-tier-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Price Tier</button></div><div><h3 class="font-semibold">Itinerary</h3><div id="itinerary-list" class="space-y-2 mt-1">${renderItinerary(program.itinerary)}</div><button id="add-itinerary-item-btn" class="text-sm mt-2 text-blue-600 hover:underline">Add Day</button></div><div><h3 class="font-semibold">Includes</h3><div id="includes-list" class="space-y-2 mt-1">${renderDynamicList(program.includes, "includes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="includes">Add Include</button></div><div><h3 class="font-semibold">Excludes</h3><div id="excludes-list" class="space-y-2 mt-1">${renderDynamicList(program.excludes, "excludes")}</div><button class="text-sm mt-2 text-blue-600 hover:underline add-dynamic-list-item" data-list="excludes">Add Exclude</button></div></div><div class="mt-6 flex justify-end"><button id="save-program-btn" data-prog-index="${isEditing ? progIndex : ''}" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg">Save Program</button></div></div>`;
             openModal(html);
         };
 
@@ -501,36 +500,38 @@
             document.getElementById('save-data-btn').addEventListener('click', saveData);
             document.body.addEventListener('click', e => {
                 const target = e.target.closest('button'); if (!target) return;
-                if (target.classList.contains('tab-button')) {
-                    const { pkgIndex, tabToggle } = target.dataset;
-                    const pkgContainer = target.closest('.animate-fadeInUp');
-                    pkgContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    pkgContainer.querySelectorAll('[data-tab-content]').forEach(content => content.classList.add('hidden'));
-                    target.classList.add('active');
-                    pkgContainer.querySelector(`[data-tab-content="${tabToggle}"]`).classList.remove('hidden');
-                }
+                if (target.classList.contains('tab-button')) { const { pkgIndex, tabToggle } = target.dataset; const pkgContainer = target.closest('.animate-fadeInUp'); pkgContainer.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); pkgContainer.querySelectorAll('[data-tab-content]').forEach(content => content.classList.add('hidden')); target.classList.add('active'); pkgContainer.querySelector(`[data-tab-content="${tabToggle}"]`).classList.remove('hidden'); }
                 if (target.id === 'create-new-program-btn') openProgramModal();
                 if (target.classList.contains('edit-program-btn')) openProgramModal(target.dataset.progIndex);
                 if (target.classList.contains('delete-program-btn')) { if (confirm('Are you sure?')) { appData.programs.splice(target.dataset.progIndex, 1); renderAdminPrograms(); } }
                 if (target.id === 'add-city-btn') { const name = prompt('Enter city name:'); if (name) { if (!appData.cities) appData.cities = []; appData.cities.push({ id: `city_${Date.now()}`, name, hotels: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
                 if (target.classList.contains('remove-city-btn')) { if (confirm('Are you sure?')) { appData.cities.splice(target.dataset.cityIndex, 1); renderAdminAccommodation(); lucide.createIcons(); } }
-                if (target.classList.contains('add-hotel-btn')) { const name = prompt('Enter hotel name:'); const { cityIndex } = target.dataset; if (name) { if (!appData.cities[cityIndex].hotels) appData.cities[cityIndex].hotels = []; appData.cities[cityIndex].hotels.push({ id: `hotel_${Date.now()}`, name, features: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('add-hotel-btn')) { const name = prompt('Enter hotel name:'); const { cityIndex } = target.dataset; if (name) { if (!appData.cities[cityIndex].hotels) appData.cities[cityIndex].hotels = []; appData.cities[cityIndex].hotels.push({ id: `hotel_${Date.now()}`, name, rooms: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
                 if (target.classList.contains('remove-hotel-btn')) { if (confirm('Are you sure?')) { const { cityIndex, hotelIndex } = target.dataset; appData.cities[cityIndex].hotels.splice(hotelIndex, 1); renderAdminAccommodation(); lucide.createIcons(); } }
-                if (target.classList.contains('add-feature-btn')) { const name = prompt('Enter feature name:'); const price = parseFloat(prompt('Enter feature price:')); const currency = prompt('Enter currency (USD or EGP):', 'USD').toUpperCase(); const { cityIndex, hotelIndex } = target.dataset; if (name && !isNaN(price) && ['USD', 'EGP'].includes(currency)) { if (!appData.cities[cityIndex].hotels[hotelIndex].features) appData.cities[cityIndex].hotels[hotelIndex].features = []; appData.cities[cityIndex].hotels[hotelIndex].features.push({ id: `feat_${Date.now()}`, name, price, currency }); renderAdminAccommodation(); lucide.createIcons(); } }
-                if (target.classList.contains('remove-feature-btn')) { const { cityIndex, hotelIndex, featureIndex } = target.dataset; appData.cities[cityIndex].hotels[hotelIndex].features.splice(featureIndex, 1); renderAdminAccommodation(); lucide.createIcons(); }
+                if (target.classList.contains('add-room-btn')) { const name = prompt('Enter Room Type name (e.g., Single, DBL):'); const price = parseFloat(prompt('Enter base price:')); const currency = prompt('Enter currency (USD or EGP):', 'USD').toUpperCase(); const { cityIndex, hotelIndex } = target.dataset; if (name && !isNaN(price) && ['USD', 'EGP'].includes(currency)) { if (!appData.cities[cityIndex].hotels[hotelIndex].rooms) appData.cities[cityIndex].hotels[hotelIndex].rooms = []; appData.cities[cityIndex].hotels[hotelIndex].rooms.push({ id: `room_${Date.now()}`, name, price, currency, views: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('remove-room-btn')) { const { cityIndex, hotelIndex, roomIndex } = target.dataset; appData.cities[cityIndex].hotels[hotelIndex].rooms.splice(roomIndex, 1); renderAdminAccommodation(); lucide.createIcons(); }
+                if (target.classList.contains('add-view-btn')) { const name = prompt('Enter View name (e.g., City View):'); const price = parseFloat(prompt('Enter additional price for this view:')); const currency = prompt('Enter currency (USD or EGP):', 'USD').toUpperCase(); const { cityIndex, hotelIndex, roomIndex } = target.dataset; if (name && !isNaN(price) && ['USD', 'EGP'].includes(currency)) { if (!appData.cities[cityIndex].hotels[hotelIndex].rooms[roomIndex].views) appData.cities[cityIndex].hotels[hotelIndex].rooms[roomIndex].views = []; appData.cities[cityIndex].hotels[hotelIndex].rooms[roomIndex].views.push({ id: `view_${Date.now()}`, name, price, currency }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('remove-view-btn')) { const { cityIndex, hotelIndex, roomIndex, viewIndex } = target.dataset; appData.cities[cityIndex].hotels[hotelIndex].rooms[roomIndex].views.splice(viewIndex, 1); renderAdminAccommodation(); lucide.createIcons(); }
+                if (target.id === 'add-cruise-line-btn') { const name = prompt('Enter Cruise Line name:'); if (name) { if (!appData.cruiseLines) appData.cruiseLines = []; appData.cruiseLines.push({ id: `cl_${Date.now()}`, name, cruises: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('remove-cruise-line-btn')) { if (confirm('Are you sure?')) { appData.cruiseLines.splice(target.dataset.lineIndex, 1); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('add-cruise-boat-btn')) { const name = prompt('Enter Cruise Boat name:'); const { lineIndex } = target.dataset; if (name) { if (!appData.cruiseLines[lineIndex].cruises) appData.cruiseLines[lineIndex].cruises = []; appData.cruiseLines[lineIndex].cruises.push({ id: `cruise_${Date.now()}`, name, rooms: [] }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('remove-cruise-boat-btn')) { const { lineIndex, boatIndex } = target.dataset; appData.cruiseLines[lineIndex].cruises.splice(boatIndex, 1); renderAdminAccommodation(); lucide.createIcons(); }
+                if (target.classList.contains('add-cruise-room-btn')) { const name = prompt('Enter Cabin Type name:'); const price = parseFloat(prompt('Enter price:')); const currency = prompt('Enter currency (USD or EGP):', 'USD').toUpperCase(); const { lineIndex, boatIndex } = target.dataset; if (name && !isNaN(price) && ['USD', 'EGP'].includes(currency)) { if (!appData.cruiseLines[lineIndex].cruises[boatIndex].rooms) appData.cruiseLines[lineIndex].cruises[boatIndex].rooms = []; appData.cruiseLines[lineIndex].cruises[boatIndex].rooms.push({ id: `c_room_${Date.now()}`, name, price, currency }); renderAdminAccommodation(); lucide.createIcons(); } }
+                if (target.classList.contains('remove-cruise-room-btn')) { const { lineIndex, boatIndex, roomIndex } = target.dataset; appData.cruiseLines[lineIndex].cruises[boatIndex].rooms.splice(roomIndex, 1); renderAdminAccommodation(); lucide.createIcons(); }
                 if (target.classList.contains('add-service-btn')) { const category = target.dataset.category; if (!appData.services[category]) appData.services[category] = []; appData.services[category].push({ id: `service_${Date.now()}`, name: 'New Service', cost: 0, currency: 'USD' }); renderAdminServices(); lucide.createIcons(); }
                 if (target.classList.contains('remove-service-btn')) { const { category, index } = target.dataset; appData.services[category].splice(index, 1); renderAdminServices(); lucide.createIcons(); }
                 if (target.id === 'add-price-tier-btn') { document.getElementById('price-tiers-list').insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="text" data-field="pax" class="w-1/3 p-2 border rounded price-tier-input" placeholder="e.g., 1 or 3-5"><input type="number" data-field="price" class="w-1/3 p-2 border rounded price-tier-input" placeholder="Price"><select data-field="currency" class="w-1/3 p-2 border rounded bg-white price-tier-input"><option value="USD">USD</option><option value="EGP">EGP</option></select><button class="text-red-500 remove-price-tier-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`); lucide.createIcons(); }
                 if (target.classList.contains('remove-price-tier-btn')) target.parentElement.remove();
-                if (target.id === 'add-program-acc-btn') { document.getElementById('program-acc-list').insertAdjacentHTML('beforeend', `<div class="flex items-center gap-2 p-2 bg-gray-100 rounded-md"><input type="number" value="1" data-field="nights" class="w-1/3 p-2 border rounded program-acc-input" placeholder="Nights"><select data-field="cityId" class="w-2/3 p-2 border rounded bg-white program-acc-input">${(appData.cities || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select><button class="text-red-500 remove-program-acc-btn"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div>`); lucide.createIcons(); }
-                if (target.classList.contains('remove-program-acc-btn')) target.parentElement.remove();
                 if (target.classList.contains('add-dynamic-list-item')) { document.getElementById(`${target.dataset.list}-list`).insertAdjacentHTML('beforeend', `<div class="flex gap-2 mb-2"><input value="" class="w-full p-2 border rounded dynamic-list-input" data-list="${target.dataset.list}"><button class="text-red-500 remove-dynamic-list-item"><i data-lucide="trash-2" class="w-5 h-5"></i></button></div>`); lucide.createIcons(); }
                 if (target.classList.contains('remove-dynamic-list-item')) target.parentElement.remove();
                 if (target.id === 'add-itinerary-item-btn') { document.getElementById('itinerary-list').insertAdjacentHTML('beforeend', `<div class="p-3 bg-gray-100 rounded-md mb-2"><div class="flex justify-between items-center mb-2"><p class="font-semibold">New Day</p><button class="remove-itinerary-item-btn text-red-500 hover:text-red-700"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button></div><input type="text" data-field="title" class="w-full p-2 border rounded-md mb-2 itinerary-input" placeholder="Day Title"><textarea data-field="description" class="w-full p-2 border rounded-md itinerary-input" rows="2" placeholder="Day Description"></textarea></div>`); lucide.createIcons(); document.querySelectorAll('#itinerary-list .font-semibold').forEach((dayLabel, i) => dayLabel.textContent = `Day ${i + 1}`); }
                 if (target.classList.contains('remove-itinerary-item-btn')) { target.closest('.p-3').remove(); document.querySelectorAll('#itinerary-list .font-semibold').forEach((dayLabel, i) => dayLabel.textContent = `Day ${i + 1}`); }
-                if (target.id === 'save-program-btn') { const { progIndex } = target.dataset; const isEditing = progIndex && progIndex !== ''; const title = document.getElementById('program-title').value; if (!title) return showToast('Program Title is required.', 'error'); const newProgram = { id: isEditing ? appData.programs[progIndex].id : `prog_${Date.now()}`, title, description: document.getElementById('program-description').value, priceTiers: Array.from(document.querySelectorAll('#price-tiers-list > div')).map(div => ({ pax: div.querySelector('[data-field="pax"]').value, price: parseFloat(div.querySelector('[data-field="price"]').value) || 0, currency: div.querySelector('[data-field="currency"]').value, })), accommodations: Array.from(document.querySelectorAll('#program-acc-list > div')).map(div => ({ nights: parseInt(div.querySelector('[data-field="nights"]').value) || 0, cityId: div.querySelector('[data-field="cityId"]').value, })), itinerary: Array.from(document.querySelectorAll('#itinerary-list > div')).map((div, i) => ({ day: i + 1, title: div.querySelector('.itinerary-input[data-field="title"]').value, description: div.querySelector('.itinerary-input[data-field="description"]').value })), includes: Array.from(document.querySelectorAll('[data-list="includes"]')).map(i => i.value).filter(Boolean), excludes: Array.from(document.querySelectorAll('[data-list="excludes"]')).map(i => i.value).filter(Boolean), }; if (isEditing) appData.programs[progIndex] = newProgram; else { if (!appData.programs) appData.programs = []; appData.programs.push(newProgram); } renderAdminPrograms(); closeModal(); }
-                if (target.classList.contains('add-program-to-trip-btn')) { const { progId } = target.dataset; const program = appData.programs.find(p => p.id === progId); if (!program) return; const newPackage = { id: `trip_${Date.now()}`, programId: progId, paxTier: program.priceTiers.length > 0 ? program.priceTiers[0].pax : '', startDate: '', accommodations: (program.accommodations || []).map(acc => ({ cityId: acc.cityId, hotelId: '', featureId: '' })), individualItems: {} }; currentTrip.packages.push(newPackage); renderCalculatorPanel(); }
+                if (target.id === 'save-program-btn') { const { progIndex } = target.dataset; const isEditing = progIndex && progIndex !== ''; const title = document.getElementById('program-title').value; if (!title) return showToast('Program Title is required.', 'error'); const newProgram = { id: isEditing ? appData.programs[progIndex].id : `prog_${Date.now()}`, title, description: document.getElementById('program-description').value, priceTiers: Array.from(document.querySelectorAll('#price-tiers-list > div')).map(div => ({ pax: div.querySelector('[data-field="pax"]').value, price: parseFloat(div.querySelector('[data-field="price"]').value) || 0, currency: div.querySelector('[data-field="currency"]').value, })), itinerary: Array.from(document.querySelectorAll('#itinerary-list > div')).map((div, i) => ({ day: i + 1, title: div.querySelector('.itinerary-input[data-field="title"]').value, description: div.querySelector('.itinerary-input[data-field="description"]').value })), includes: Array.from(document.querySelectorAll('[data-list="includes"]')).map(i => i.value).filter(Boolean), excludes: Array.from(document.querySelectorAll('[data-list="excludes"]')).map(i => i.value).filter(Boolean), }; if (isEditing) appData.programs[progIndex] = newProgram; else { if (!appData.programs) appData.programs = []; appData.programs.push(newProgram); } renderAdminPrograms(); closeModal(); }
+                if (target.classList.contains('add-program-to-trip-btn')) { const { progId } = target.dataset; const program = appData.programs.find(p => p.id === progId); if (!program) return; const newPackage = { id: `trip_${Date.now()}`, programId: progId, paxTier: program.priceTiers.length > 0 ? program.priceTiers[0].pax : '', startDate: '', accommodations: [], individualItems: {} }; currentTrip.packages.push(newPackage); renderCalculatorPanel(); }
                 if (target.classList.contains('remove-package-from-trip-btn')) { currentTrip.packages.splice(target.dataset.pkgIndex, 1); renderCalculatorPanel(); }
+                if (target.classList.contains('add-hotel-leg-btn')) { const { pkgIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations.push({ type: 'hotel', cityId: '', hotelId: '', roomId: '', viewId: '', nights: 1 }); renderCalculatorPanel(); }
+                if (target.classList.contains('add-cruise-leg-btn')) { const { pkgIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations.push({ type: 'cruise', nights: 1, cruiseLineId: '', cruiseId: '', roomId: '' }); renderCalculatorPanel(); }
+                if (target.classList.contains('remove-accommodation-leg-btn')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations.splice(accIndex, 1); renderCalculatorPanel(); }
                 if (target.classList.contains('add-individual-to-pkg-btn')) { const { pkgIndex, category } = target.dataset; const container = target.closest('.flex'); const select = container.querySelector('.individual-service-select'); const quantityInput = container.querySelector('.individual-quantity-input'); const serviceId = select.value; const quantity = parseInt(quantityInput.value); if (serviceId && quantity > 0) { const pkg = currentTrip.packages[pkgIndex]; if (!pkg.individualItems[category]) pkg.individualItems[category] = []; pkg.individualItems[category].push({ serviceId, quantity }); renderCalculatorPanel(); } else { showToast('Please select an item and quantity.', 'error'); } }
                 if (target.classList.contains('remove-individual-from-pkg-btn')) { const { pkgIndex, category, itemIndex } = target.dataset; currentTrip.packages[pkgIndex].individualItems[category].splice(itemIndex, 1); renderCalculatorPanel(); }
                 if (target.classList.contains('preview-program-btn')) { openProgramDetailsModal(target.dataset.progIndex); }
@@ -539,14 +540,20 @@
             document.body.addEventListener('change', e => {
                 const target = e.target;
                 if (target.matches('.trip-pax-select')) { const { pkgIndex } = target.dataset; currentTrip.packages[pkgIndex].paxTier = target.value; renderCalculatorPanel(); }
-                if (target.matches('.trip-hotel-select')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations[accIndex].hotelId = target.value; currentTrip.packages[pkgIndex].accommodations[accIndex].featureId = ''; renderCalculatorPanel(); }
-                if (target.matches('.trip-hotel-feature-select')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations[accIndex].featureId = target.value; renderCalculatorPanel(); }
+                if (target.matches('.trip-city-select')) { const { pkgIndex, accIndex } = target.dataset; const acc = currentTrip.packages[pkgIndex].accommodations[accIndex]; acc.cityId = target.value; acc.hotelId = ''; acc.roomId = ''; acc.viewId = ''; renderCalculatorPanel(); }
+                if (target.matches('.trip-hotel-select')) { const { pkgIndex, accIndex } = target.dataset; const acc = currentTrip.packages[pkgIndex].accommodations[accIndex]; acc.hotelId = target.value; acc.roomId = ''; acc.viewId = ''; renderCalculatorPanel(); }
+                if (target.matches('.trip-room-select')) { const { pkgIndex, accIndex } = target.dataset; const acc = currentTrip.packages[pkgIndex].accommodations[accIndex]; acc.roomId = target.value; acc.viewId = ''; renderCalculatorPanel(); }
+                if (target.matches('.trip-view-select')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations[accIndex].viewId = target.value; renderCalculatorPanel(); }
+                if (target.matches('.trip-cruiseline-select')) { const { pkgIndex, accIndex } = target.dataset; const acc = currentTrip.packages[pkgIndex].accommodations[accIndex]; acc.cruiseLineId = target.value; acc.cruiseId = ''; acc.roomId = ''; renderCalculatorPanel(); }
+                if (target.matches('.trip-cruise-select')) { const { pkgIndex, accIndex } = target.dataset; const acc = currentTrip.packages[pkgIndex].accommodations[accIndex]; acc.cruiseId = target.value; acc.roomId = ''; renderCalculatorPanel(); }
+                if (target.matches('.trip-cruiseroom-select')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations[accIndex].roomId = target.value; renderCalculatorPanel(); }
             });
             document.body.addEventListener('input', e => {
                 const target = e.target;
                 if (target.matches('#exchange-rate-input')) { appData.exchangeRate = parseFloat(target.value) || 0; }
                 if (target.matches('.trip-start-date-input')) { const { pkgIndex } = target.dataset; currentTrip.packages[pkgIndex].startDate = target.value; }
                 if (target.matches('.admin-service-input')) { const { category, index, field } = target.dataset; let value = target.value; if (target.type === 'number') value = parseFloat(value) || 0; appData.services[category][index][field] = value; }
+                if (target.matches('.trip-nights-input')) { const { pkgIndex, accIndex } = target.dataset; currentTrip.packages[pkgIndex].accommodations[accIndex].nights = parseInt(target.value) || 0; renderCalculatorPanel(); }
             });
         };
 
